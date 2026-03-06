@@ -1,0 +1,8 @@
+# {{ project_name }} Dockerfile
+# Customize this Dockerfile for your project.
+
+FROM ubuntu:24.04
+WORKDIR /app
+COPY . .
+EXPOSE 8080
+CMD ["echo", "Configure your CMD in Dockerfile"]

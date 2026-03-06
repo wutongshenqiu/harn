@@ -73,6 +73,33 @@ impl Module for QualityModule {
                         }
                     }
                 }
+                "python" => {
+                    let src = "quality/ruff.toml";
+                    if engine.has_template(src) {
+                        let dst = ctx.path("ruff.toml");
+                        if engine.render_to(src, &vars, &dst, force)? {
+                            created.push("ruff.toml".into());
+                        }
+                    }
+                }
+                "java" => {
+                    let src = "quality/checkstyle.xml";
+                    if engine.has_template(src) {
+                        let dst = ctx.path("checkstyle.xml");
+                        if engine.render_to(src, &vars, &dst, force)? {
+                            created.push("checkstyle.xml".into());
+                        }
+                    }
+                }
+                "cpp" | "c" => {
+                    let src = "quality/clang-format";
+                    if engine.has_template(src) {
+                        let dst = ctx.path(".clang-format");
+                        if engine.render_to(src, &vars, &dst, force)? {
+                            created.push(".clang-format".into());
+                        }
+                    }
+                }
                 _ => {}
             }
         }

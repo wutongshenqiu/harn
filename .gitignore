@@ -25,3 +25,6 @@ logs/
 # Temp
 tmp/
 .tmp/
+
+# Claude Code worktrees
+.claude/worktrees/

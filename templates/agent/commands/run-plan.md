@@ -54,3 +54,10 @@ Same as `next` — reads current-plan.md and continues from where it left off.
 - Always update `.claude/current-plan.md` after each spec completes — it survives context compression
 - One spec at a time — do not parallelize spec implementation
 - After each spec, verify the build still passes: `make check`
+
+## Worktree vs Direct Implementation
+
+- **Use worktree isolation** (default) when specs touch independent files — maximizes parallelism and safety
+- **Skip worktree isolation** when consecutive specs modify the same source files (e.g., multiple languages all adding match arms to the same `.rs` files) — avoids merge conflicts
+- To skip worktree: implement directly in the main working tree instead of delegating to `spec-implementer` with `isolation: "worktree"`
+- Signs you should skip worktree: specs that all touch `git.rs`, `quality.rs`, `agent.rs`, or other shared modules

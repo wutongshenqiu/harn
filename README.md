@@ -8,7 +8,7 @@ Universal project harness with Spec-Driven Development (SDD) methodology.
 
 **harn** equips your project with production-grade development infrastructure in one command: SDD documentation, AI agent configs, CI/CD pipelines, build orchestration, and quality gates.
 
-Distilled from patterns across multiple production Rust/Go/TypeScript/Flutter projects.
+Distilled from patterns across multiple production Rust/Go/TypeScript/Flutter/Python/Java/C++ projects.
 
 ## Install
 
@@ -135,15 +135,17 @@ Generate a full example: `harn example`
 
 ## Language Support
 
-harn generates language-aware Makefiles, .gitignore, linter configs, and CI workflows:
+harn generates language-aware Makefiles, .gitignore, linter configs, Docker templates, and CI workflows:
 
-| Language | Makefile | .gitignore | Linter Config | CI |
-|----------|----------|------------|---------------|-----|
-| Rust | cargo targets | target/ | rust-toolchain.toml | clippy + fmt |
-| Go | go targets | bin/ | .golangci.yml | golangci-lint |
-| TypeScript | npm/pnpm targets | node_modules/ | eslint + prettier | lint + tsc |
-| Dart/Flutter | flutter targets | .dart_tool/ | analysis_options | analyze |
-| Python | pip/uv targets | __pycache__/ | — | planned |
+| Language | Build | .gitignore | Linter Config | Docker |
+|----------|-------|------------|---------------|--------|
+| Rust | cargo targets | target/ | rust-toolchain.toml | multi-stage (rust:slim) |
+| Go | go targets | bin/ | .golangci.yml | multi-stage (golang:alpine) |
+| TypeScript | npm targets | node_modules/ | eslint + prettier | multi-stage (node:alpine) |
+| Dart/Flutter | flutter targets | .dart_tool/ | — | multi-stage (dart:stable) |
+| Python | uv + ruff + pytest | \_\_pycache\_\_/ | ruff.toml | python:slim + uv |
+| Java | gradle targets | build/, .gradle/ | checkstyle.xml | multi-stage (temurin:21) |
+| C/C++ | cmake targets | build/, *.o | .clang-format | multi-stage (gcc + debian) |
 
 ## Methodology
 

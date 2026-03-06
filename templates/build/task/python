@@ -1,0 +1,32 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: Run with hot-reload
+    cmds:
+      - uvicorn app.main:app --reload
+
+  build:
+    desc: Build/package
+    cmds:
+      - uv build
+
+  test:
+    desc: Run tests
+    cmds:
+      - uv run pytest -v --cov
+
+  lint:
+    desc: Lint
+    cmds:
+      - uv run ruff check .
+
+  fmt:
+    desc: Format
+    cmds:
+      - uv run ruff format .
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf dist/ build/ *.egg-info .pytest_cache .coverage htmlcov/ __pycache__/

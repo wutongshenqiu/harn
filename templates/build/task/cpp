@@ -1,0 +1,45 @@
+version: "3"
+
+vars:
+  BUILD_DIR: build
+
+tasks:
+  default:
+    cmds:
+      - task --list
+    silent: true
+
+  dev:
+    desc: Build and run (debug)
+    cmds:
+      - cmake -B {{.BUILD_DIR}} -DCMAKE_BUILD_TYPE=Debug
+      - cmake --build {{.BUILD_DIR}}
+      - ./{{.BUILD_DIR}}/main
+
+  build:
+    desc: Build (release)
+    cmds:
+      - cmake -B {{.BUILD_DIR}} -DCMAKE_BUILD_TYPE=Release
+      - cmake --build {{.BUILD_DIR}}
+
+  test:
+    desc: Run tests
+    cmds:
+      - cmake -B {{.BUILD_DIR}} -DCMAKE_BUILD_TYPE=Debug
+      - cmake --build {{.BUILD_DIR}}
+      - ctest --test-dir {{.BUILD_DIR}} --output-on-failure
+
+  lint:
+    desc: Lint (clang-tidy)
+    cmds:
+      - clang-tidy src/*.cpp -- -Iinclude
+
+  fmt:
+    desc: Format (clang-format)
+    cmds:
+      - find src include -name '*.cpp' -o -name '*.h' -o -name '*.hpp' | xargs clang-format -i
+
+  clean:
+    desc: Clean
+    cmds:
+      - rm -rf {{.BUILD_DIR}}
