@@ -1,0 +1,49 @@
+[project]
+name = "harn"
+type = "single"
+
+[stacks]
+languages = ["rust"]
+frameworks = []
+
+[modules.sdd]
+playbooks = true
+reference = false
+
+[modules.ci]
+provider = "github"
+workflows = ["ci"]
+
+[modules.agent]
+tools = [
+    "claude",
+    "cursor",
+]
+commands = [
+    "ship",
+    "implement",
+    "spec",
+    "lint",
+    "test",
+    "review",
+    "diagnose",
+    "deps",
+    "issues",
+    "doc-audit",
+    "retro",
+    "ci",
+    "pr",
+]
+pre_commit_hook = true
+
+[modules.agent.permissions]
+
+[modules.build]
+tool = "make"
+
+[modules.git]
+gitignore = true
+gitattributes = false
+
+[modules.quality]
+editorconfig = true

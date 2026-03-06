@@ -1,30 +1,36 @@
-.PHONY: build test lint fmt clean install check
+.PHONY: build release test lint fmt fmt-check check clean install run help
 
-build:
+build:  ## Build debug
 	cargo build
 
-release:
+release:  ## Build release
 	cargo build --release
 
-test:
+test:  ## Run tests
 	cargo test --workspace
 
-lint:
+lint:  ## Lint (clippy + fmt check)
+	cargo fmt --check
 	cargo clippy --workspace --all-targets -- -D warnings
 
-fmt:
+fmt:  ## Format code
 	cargo fmt
 
-fmt-check:
+check:  ## Full CI locally (fmt + lint + test)
 	cargo fmt --check
+	cargo clippy --workspace --all-targets -- -D warnings
+	cargo test --workspace
 
-check: fmt-check lint test
-
-clean:
+clean:  ## Clean artifacts
 	cargo clean
 
-install:
+install:  ## Install to cargo bin
 	cargo install --path crates/cli
 
-run:
+run:  ## Run with args (make run ARGS="init .")
 	cargo run -- $(ARGS)
+
+help:  ## Show help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help

@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(ls:*)",
+      "Bash(curl:*)",
+      "Bash(docker:*)",
+      "Bash(cargo:*)",
+      "Bash(rustup:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git commit*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "make lint && make test"
+          }
+        ]
+      }
+    ]
+  }
+}

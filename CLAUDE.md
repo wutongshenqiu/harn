@@ -14,13 +14,6 @@ crates/
 templates/    # Template files embedded into the binary at compile time
 ```
 
-## Key Patterns
-
-- **Module trait** (`crates/core/src/module.rs`): All modules implement `id()`, `name()`, `description()`, `generate(ctx)`
-- **Registry** (`crates/modules/src/registry.rs`): Modules registered in execution order
-- **Templates** embedded via `include_dir!` — zero runtime file dependencies
-- **Config** (`harn.toml`): TOML-based, defines project + stacks + per-module config
-
 ## Commands
 
 ```bash
@@ -32,16 +25,42 @@ make build        # cargo build
 make release      # cargo build --release
 ```
 
+## Slash Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/ship [msg]` | Lint + test + commit + push + PR |
+| `/implement SPEC-NNN` | Implement a spec |
+| `/spec create/list/advance` | Manage spec lifecycle |
+| `/lint [fix]` | Run linters |
+| `/test [scope]` | Run tests |
+| `/review [PR#]` | Code review |
+| `/diagnose [error]` | Diagnose issues |
+| `/deps [check/update]` | Manage dependencies |
+| `/doc-audit` | Audit docs vs code |
+
 ## Extension Points
 
-- New module: implement Module trait, register in registry.rs, add templates
+- New module: implement Module trait in `crates/modules/src/`, register in `registry.rs`, add templates
 - New CI provider: add templates in `templates/ci/<provider>/`, update `crates/modules/src/ci.rs`
 - New language: add Makefile template, .gitignore fragment, linter config, CI steps
 - New AI tool: add template in `templates/agent/`, update `crates/modules/src/agent.rs`
 
-## Conventions
+## Coding Rules
 
-- Edition 2024, rust-version 1.85, resolver 3
-- All deps in workspace Cargo.toml
-- `cargo clippy -- -D warnings` must pass
-- Templates use minijinja syntax: `{{ variable }}`
+1. **Lint before commit** — `make lint` must pass (clippy pedantic, zero warnings)
+2. **Test before commit** — `make test` must pass
+3. **No unsafe** — `unsafe_code = "forbid"`
+4. **Conventional commits** — `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`
+5. **Edition 2024**, rust-version 1.87, resolver 3
+6. **All deps in workspace Cargo.toml**
+7. **Templates use minijinja syntax** — `{{ variable }}`
+
+## SDD (Spec-Driven Development)
+
+```
+Draft -> Active -> Completed
+```
+
+- Specs: `docs/specs/` (registry: `_index.md`)
+- Playbooks: `docs/playbooks/`
