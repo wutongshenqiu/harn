@@ -1,0 +1,25 @@
+# {{ project_name }} - Unified Build
+
+# Run with hot-reload
+dev:
+    uvicorn app.main:app --reload
+
+# Build/package
+build:
+    uv build
+
+# Run tests
+test:
+    uv run pytest -v --cov
+
+# Lint
+lint:
+    uv run ruff check .
+
+# Format
+fmt:
+    uv run ruff format .
+
+# Clean build artifacts
+clean:
+    rm -rf dist/ build/ *.egg-info .pytest_cache .coverage htmlcov/ __pycache__/

@@ -73,6 +73,15 @@ impl Module for QualityModule {
                         }
                     }
                 }
+                "python" => {
+                    let src = "quality/ruff.toml";
+                    if engine.has_template(src) {
+                        let dst = ctx.path("ruff.toml");
+                        if engine.render_to(src, &vars, &dst, force)? {
+                            created.push("ruff.toml".into());
+                        }
+                    }
+                }
                 _ => {}
             }
         }

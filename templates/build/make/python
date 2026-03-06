@@ -1,0 +1,24 @@
+.PHONY: dev build test lint fmt clean help
+
+dev:  ## Run with hot-reload
+	uvicorn app.main:app --reload
+
+build:  ## Build/package
+	uv build
+
+test:  ## Run tests
+	uv run pytest -v --cov
+
+lint:  ## Lint
+	uv run ruff check .
+
+fmt:  ## Format
+	uv run ruff format .
+
+clean:  ## Clean build artifacts
+	rm -rf dist/ build/ *.egg-info .pytest_cache .coverage htmlcov/ __pycache__/
+
+help:  ## Show help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help
