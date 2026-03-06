@@ -8,5 +8,6 @@ pub mod ide;
 pub mod quality;
 pub mod registry;
 pub mod sdd;
+pub mod sdd_checks;
 
 pub use registry::ModuleRegistry;

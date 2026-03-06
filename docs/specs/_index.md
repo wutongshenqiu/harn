@@ -11,6 +11,7 @@ All specifications for harn.
 | SPEC-003 | Add Java Language Support                       | Completed | completed/SPEC-003/             |
 | SPEC-004 | Add C/C++ Language Support                      | Completed | completed/SPEC-004/             |
 | SPEC-005 | Add Docker Templates for All Languages          | Completed | completed/SPEC-005/             |
+| SPEC-006 | SDD Project Diagnostics and Upgrade (harn doctor) | Completed | completed/SPEC-006/             |
 
 ## Active
 
