@@ -222,6 +222,7 @@ name = "harn-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "console",
  "serde",
  "toml",
 ]
@@ -234,6 +235,7 @@ dependencies = [
  "console",
  "harn-core",
  "harn-templates",
+ "tempfile",
 ]
 
 [[package]]

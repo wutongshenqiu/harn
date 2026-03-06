@@ -113,6 +113,13 @@ impl TemplateEngine {
         result
     }
 
+    /// Get raw bytes of an embedded template file.
+    pub fn get_embedded_content(template_path: &str) -> Option<&'static [u8]> {
+        TEMPLATES_DIR
+            .get_file(template_path)
+            .map(include_dir::File::contents)
+    }
+
     /// Build standard template variables from a project context.
     pub fn vars_from_context(ctx: &ProjectContext) -> HashMap<String, String> {
         let mut vars = HashMap::new();

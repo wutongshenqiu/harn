@@ -45,6 +45,9 @@ include_dir = { version = "0.7", features = ["glob"] }
 # Error handling
 anyhow = "1"
 
+# Testing
+tempfile = "3"
+
 # Workspace crates
 harn-core = { path = "crates/core" }
 harn-modules = { path = "crates/modules" }

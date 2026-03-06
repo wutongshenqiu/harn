@@ -65,6 +65,17 @@ enum Commands {
         directory: PathBuf,
     },
 
+    /// Diagnose SDD project health
+    Doctor {
+        /// Project directory
+        #[arg(default_value = ".")]
+        directory: PathBuf,
+
+        /// Auto-fix safe issues
+        #[arg(long)]
+        fix: bool,
+    },
+
     /// List available modules
     Modules,
 
@@ -91,6 +102,7 @@ fn main() -> Result<()> {
             force,
         } => cmd_add(&module, directory, force),
         Commands::Spec { title, directory } => cmd_spec(title, directory),
+        Commands::Doctor { directory, fix } => cmd_doctor(directory, fix),
         Commands::Modules => {
             cmd_modules();
             Ok(())
@@ -295,6 +307,50 @@ fn cmd_spec(title: Option<String>, directory: PathBuf) -> Result<()> {
     println!("  TD:  docs/specs/active/{spec_id}/technical-design.md");
 
     Ok(())
+}
+
+fn cmd_doctor(directory: PathBuf, fix: bool) -> Result<()> {
+    let root = if directory.is_absolute() {
+        directory
+    } else {
+        std::env::current_dir()?.join(&directory)
+    };
+    let root = root.canonicalize()?;
+
+    if !root.join("docs/specs").exists() {
+        eprintln!(
+            "{} No SDD structure found. Run `harn add sdd` first.",
+            style("Error:").red().bold()
+        );
+        std::process::exit(1);
+    }
+
+    println!(
+        "{} SDD project health...\n",
+        style("Checking").blue().bold()
+    );
+
+    let result = harn_modules::sdd_checks::run_all_checks(&root);
+
+    if fix && result.has_fixable() {
+        println!();
+        println!("{}", style("Applying fixes...").blue().bold());
+        println!();
+        let fixed = harn_core::doctor::apply_fixes(&root, &result)?;
+        for f in &fixed {
+            println!("  {} {f}", style("fixed").green());
+        }
+
+        println!();
+        println!("{}", style("Re-checking...").blue().bold());
+        println!();
+        let recheck = harn_modules::sdd_checks::run_all_checks(&root);
+        harn_core::doctor::print_summary(&recheck);
+        std::process::exit(recheck.exit_code());
+    }
+
+    harn_core::doctor::print_summary(&result);
+    std::process::exit(result.exit_code());
 }
 
 fn cmd_modules() {

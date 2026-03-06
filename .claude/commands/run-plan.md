@@ -42,6 +42,7 @@ This command manages execution of multi-spec plans that span multiple context wi
 6. If partial completion, note it and ask user whether to retry or continue
 7. If all specs done:
    - Report completion summary
+   - Archive plan: rename `.claude/current-plan.md` → `.claude/plans/completed-{title-slug}-{date}.md`
    - Suggest: `/ship` to create PR
 
 ### `resume`
