@@ -16,3 +16,12 @@
 | Draft | Being written |
 | Active | Implementation in progress |
 | Completed | Verified by tests |
+
+## Revising an Active Spec
+
+When implementation reveals a design issue:
+
+1. Update the relevant section in PRD or TD
+2. Add an entry to TD's Revision Log with date and reason
+3. Update Task Breakdown if tasks changed
+4. Continue implementation from the updated spec
