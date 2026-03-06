@@ -1,0 +1,30 @@
+# {{ project_name }} - Unified Build
+
+# Start dev server
+dev:
+    npm run dev
+
+# Build for production
+build:
+    npm run build
+
+# Run tests
+test:
+    npm run test
+
+# Lint + type check
+lint:
+    npm run lint
+    npx tsc --noEmit
+
+# Format
+fmt:
+    npx prettier --write "src/**/*.{ts,tsx,css}"
+
+# Install dependencies
+install:
+    npm install
+
+# Clean
+clean:
+    rm -rf dist/ node_modules/.cache

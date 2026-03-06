@@ -1,0 +1,35 @@
+# {{ project_name }} - Unified Build
+
+binary := `basename $PWD`
+
+# Run with hot-reload
+dev:
+    air
+
+# Run server
+run:
+    go run ./cmd/server/
+
+# Build binary
+build:
+    go build -o bin/{{binary}} ./cmd/server/
+
+# Run tests
+test:
+    go test -v -race -coverprofile=coverage.out ./...
+
+# Lint
+lint:
+    golangci-lint run ./...
+
+# Format
+fmt:
+    gofmt -w .
+
+# Tidy modules
+tidy:
+    go mod tidy
+
+# Clean
+clean:
+    rm -rf bin/ coverage.out

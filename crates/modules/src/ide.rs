@@ -7,9 +7,9 @@ use harn_templates::TemplateEngine;
 ///
 /// Supports:
 /// - VS Code (.vscode/settings.json, extensions.json)
-/// - `JetBrains` (.idea/)
-/// - Vim/Neovim (.nvim.lua / .exrc)
 /// - Zed (.zed/settings.json)
+/// - `JetBrains` (.idea/) — planned
+/// - Vim/Neovim (.nvim.lua / .exrc) — planned
 pub struct IdeModule;
 
 impl Module for IdeModule {
@@ -22,7 +22,7 @@ impl Module for IdeModule {
     }
 
     fn description(&self) -> &str {
-        "Editor configs (VS Code, JetBrains, Vim, Zed)"
+        "Editor configs (VS Code, Zed; JetBrains, Vim planned)"
     }
 
     fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
@@ -58,7 +58,13 @@ impl Module for IdeModule {
                         }
                     }
                 }
-                _ => {} // jetbrains, vim — extend later
+                other => {
+                    eprintln!(
+                        "  {} No template for editor '{}', skipping",
+                        console::style("WARN").yellow(),
+                        other
+                    );
+                }
             }
         }
 

@@ -1,0 +1,29 @@
+# {{ project_name }} - Unified Build
+
+# Run debug
+dev:
+    flutter run
+
+# Build release APK
+build:
+    flutter build apk --release
+
+# Run tests
+test:
+    flutter test
+
+# Analyze
+lint:
+    flutter analyze
+
+# Format
+fmt:
+    dart format lib/ test/
+
+# Code generation
+gen:
+    flutter pub run build_runner build --delete-conflicting-outputs
+
+# Clean
+clean:
+    flutter clean

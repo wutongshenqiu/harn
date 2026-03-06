@@ -1,0 +1,46 @@
+version: '3'
+
+vars:
+  BINARY:
+    sh: basename $PWD
+
+tasks:
+  dev:
+    desc: Run with hot-reload
+    cmds:
+      - air
+
+  run:
+    desc: Run server
+    cmds:
+      - go run ./cmd/server/
+
+  build:
+    desc: Build binary
+    cmds:
+      - go build -o bin/{{.BINARY}} ./cmd/server/
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test -v -race -coverprofile=coverage.out ./...
+
+  lint:
+    desc: Lint
+    cmds:
+      - golangci-lint run ./...
+
+  fmt:
+    desc: Format
+    cmds:
+      - gofmt -w .
+
+  tidy:
+    desc: Tidy modules
+    cmds:
+      - go mod tidy
+
+  clean:
+    desc: Clean
+    cmds:
+      - rm -rf bin/ coverage.out

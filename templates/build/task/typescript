@@ -1,0 +1,38 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: Start dev server
+    cmds:
+      - npm run dev
+
+  build:
+    desc: Build for production
+    cmds:
+      - npm run build
+
+  test:
+    desc: Run tests
+    cmds:
+      - npm run test
+
+  lint:
+    desc: Lint + type check
+    cmds:
+      - npm run lint
+      - npx tsc --noEmit
+
+  fmt:
+    desc: Format
+    cmds:
+      - npx prettier --write "src/**/*.{ts,tsx,css}"
+
+  install:
+    desc: Install dependencies
+    cmds:
+      - npm install
+
+  clean:
+    desc: Clean
+    cmds:
+      - rm -rf dist/ node_modules/.cache

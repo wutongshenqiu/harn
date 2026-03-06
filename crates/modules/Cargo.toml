@@ -8,6 +8,7 @@ rust-version.workspace = true
 harn-core.workspace = true
 harn-templates.workspace = true
 anyhow.workspace = true
+console.workspace = true
 
 [lints]
 workspace = true

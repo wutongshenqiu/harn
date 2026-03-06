@@ -99,7 +99,7 @@ pub struct SddConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CiConfig {
-    /// CI platform: github, gitlab, codeberg
+    /// CI platform: github, gitlab, gitea (alias: codeberg)
     #[serde(default = "default_ci_provider")]
     pub provider: String,
 
@@ -200,7 +200,7 @@ impl Default for BuildConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IdeConfig {
-    /// Editors: vscode, jetbrains, vim, zed
+    /// Editors: vscode, zed (jetbrains, vim planned)
     #[serde(default = "default_editors")]
     pub editors: Vec<String>,
 }

@@ -1,0 +1,32 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: Start development
+    cmds:
+      - echo "TODO: Configure dev command"
+
+  build:
+    desc: Build
+    cmds:
+      - echo "TODO: Configure build command"
+
+  test:
+    desc: Test
+    cmds:
+      - echo "TODO: Configure test command"
+
+  lint:
+    desc: Lint
+    cmds:
+      - echo "TODO: Configure lint command"
+
+  fmt:
+    desc: Format
+    cmds:
+      - echo "TODO: Configure fmt command"
+
+  clean:
+    desc: Clean
+    cmds:
+      - echo "TODO: Configure clean command"

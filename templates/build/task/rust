@@ -1,0 +1,43 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: Run dev server
+    cmds:
+      - cargo run
+
+  build:
+    desc: Build release
+    cmds:
+      - cargo build --release
+
+  check:
+    desc: Type check
+    cmds:
+      - cargo check --workspace
+
+  test:
+    desc: Run tests
+    cmds:
+      - cargo test --workspace
+
+  lint:
+    desc: Lint
+    cmds:
+      - cargo fmt --check
+      - cargo clippy --workspace --all-targets -- -D warnings
+
+  fmt:
+    desc: Format
+    cmds:
+      - cargo fmt
+
+  audit:
+    desc: Security audit
+    cmds:
+      - cargo audit
+
+  clean:
+    desc: Clean
+    cmds:
+      - cargo clean

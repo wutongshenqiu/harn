@@ -13,7 +13,6 @@ TODO: List key directories and files
 ## Commands
 
 ```bash
-make dev          # Start development
 make build        # Build project
 make test         # Run tests
 make lint         # Run linters
@@ -25,15 +24,7 @@ make clean        # Clean artifacts
 
 | Command | Purpose |
 |---------|---------|
-| `/ship [msg]` | Lint + test + commit + push + PR |
-| `/implement SPEC-NNN` | Implement a spec |
-| `/spec create/list/advance` | Manage spec lifecycle |
-| `/lint [fix]` | Run linters |
-| `/test [scope]` | Run tests |
-| `/review [PR#]` | Code review |
-| `/diagnose [error]` | Diagnose issues |
-| `/deps [check/update]` | Manage dependencies |
-| `/doc-audit` | Audit docs vs code |
+{{ slash_commands_table }}
 
 ## Coding Rules
 

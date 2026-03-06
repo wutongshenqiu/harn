@@ -1,0 +1,26 @@
+# {{ project_name }} - Unified Build
+# Customize targets for your project.
+
+# Start development
+dev:
+    @echo "TODO: Configure dev command"
+
+# Build
+build:
+    @echo "TODO: Configure build command"
+
+# Test
+test:
+    @echo "TODO: Configure test command"
+
+# Lint
+lint:
+    @echo "TODO: Configure lint command"
+
+# Format
+fmt:
+    @echo "TODO: Configure fmt command"
+
+# Clean
+clean:
+    @echo "TODO: Configure clean command"
