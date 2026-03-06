@@ -1,0 +1,32 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: Run with hot-reload
+    cmds:
+      - ./gradlew bootRun
+
+  build:
+    desc: Build
+    cmds:
+      - ./gradlew build
+
+  test:
+    desc: Run tests
+    cmds:
+      - ./gradlew test
+
+  lint:
+    desc: Lint
+    cmds:
+      - ./gradlew checkstyleMain checkstyleTest
+
+  fmt:
+    desc: Format (using google-java-format via spotless)
+    cmds:
+      - ./gradlew spotlessApply
+
+  clean:
+    desc: Clean
+    cmds:
+      - ./gradlew clean

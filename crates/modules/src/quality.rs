@@ -73,6 +73,15 @@ impl Module for QualityModule {
                         }
                     }
                 }
+                "java" => {
+                    let src = "quality/checkstyle.xml";
+                    if engine.has_template(src) {
+                        let dst = ctx.path("checkstyle.xml");
+                        if engine.render_to(src, &vars, &dst, force)? {
+                            created.push("checkstyle.xml".into());
+                        }
+                    }
+                }
                 _ => {}
             }
         }
