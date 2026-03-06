@@ -30,11 +30,15 @@ impl Module for AgentModule {
 
     fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
         let engine = TemplateEngine::new();
-        let vars = TemplateEngine::vars_from_context(ctx);
+        let mut vars = TemplateEngine::vars_from_context(ctx);
         let force = ctx.force;
         let mut created = Vec::new();
 
         let agent_config = ctx.config.modules.agent.clone().unwrap_or_default();
+
+        // Build slash commands table from configured commands
+        let slash_table = Self::build_slash_commands_table(&agent_config.commands);
+        vars.insert("slash_commands_table".into(), slash_table);
 
         // CLAUDE.md and AGENTS.md — always generated (universal context)
         for name in &["CLAUDE.md", "AGENTS.md"] {
@@ -170,6 +174,36 @@ impl AgentModule {
         }
 
         Ok(created)
+    }
+
+    fn build_slash_commands_table(commands: &[String]) -> String {
+        let descriptions: &[(&str, &str, &str)] = &[
+            ("ship", "/ship [msg]", "Lint + test + commit + push + PR"),
+            ("implement", "/implement SPEC-NNN", "Implement a spec"),
+            ("spec", "/spec create/list/advance", "Manage spec lifecycle"),
+            ("lint", "/lint [fix]", "Run linters"),
+            ("test", "/test [scope]", "Run tests"),
+            ("review", "/review [PR#]", "Code review"),
+            ("diagnose", "/diagnose [error]", "Diagnose issues"),
+            ("deps", "/deps [check/update]", "Manage dependencies"),
+            ("doc-audit", "/doc-audit", "Audit docs vs code"),
+            ("issues", "/issues SPEC-NNN", "Generate issues from Spec"),
+            ("retro", "/retro", "Session retrospective"),
+            ("ci", "/ci [PR#]", "Check CI status"),
+            ("pr", "/pr [title]", "Create pull request"),
+            ("deploy", "/deploy", "Deploy"),
+            ("sync-commands", "/sync-commands", "Sync slash commands"),
+        ];
+
+        let mut rows = Vec::new();
+        for cmd in commands {
+            if let Some((_, display, desc)) = descriptions.iter().find(|(id, _, _)| *id == cmd) {
+                rows.push(format!("| `{display}` | {desc} |"));
+            } else {
+                rows.push(format!("| `/{cmd}` | {cmd} |"));
+            }
+        }
+        rows.join("\n")
     }
 
     fn build_claude_settings(&self, ctx: &ProjectContext) -> String {

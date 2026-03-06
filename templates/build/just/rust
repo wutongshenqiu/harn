@@ -1,0 +1,34 @@
+# {{ project_name }} - Unified Build
+
+# Run dev server
+dev:
+    cargo run
+
+# Build release
+build:
+    cargo build --release
+
+# Type check
+check:
+    cargo check --workspace
+
+# Run tests
+test:
+    cargo test --workspace
+
+# Lint
+lint:
+    cargo fmt --check
+    cargo clippy --workspace --all-targets -- -D warnings
+
+# Format
+fmt:
+    cargo fmt
+
+# Security audit
+audit:
+    cargo audit
+
+# Clean
+clean:
+    cargo clean

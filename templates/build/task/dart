@@ -1,0 +1,37 @@
+version: '3'
+
+tasks:
+  dev:
+    desc: Run debug
+    cmds:
+      - flutter run
+
+  build:
+    desc: Build release APK
+    cmds:
+      - flutter build apk --release
+
+  test:
+    desc: Run tests
+    cmds:
+      - flutter test
+
+  lint:
+    desc: Analyze
+    cmds:
+      - flutter analyze
+
+  fmt:
+    desc: Format
+    cmds:
+      - dart format lib/ test/
+
+  gen:
+    desc: Code generation
+    cmds:
+      - flutter pub run build_runner build --delete-conflicting-outputs
+
+  clean:
+    desc: Clean
+    cmds:
+      - flutter clean

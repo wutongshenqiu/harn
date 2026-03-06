@@ -1,4 +1,5 @@
 use anyhow::Result;
+use console::style;
 use harn_core::context::ProjectContext;
 use harn_core::module::{Module, ModuleId};
 use harn_templates::TemplateEngine;
@@ -59,8 +60,17 @@ impl Module for BuildModule {
         };
 
         let dst = ctx.path(output_file);
-        if engine.has_template(&src) && engine.render_to(&src, &vars, &dst, force)? {
-            created.push(output_file.into());
+        if engine.has_template(&src) {
+            if engine.render_to(&src, &vars, &dst, force)? {
+                created.push(output_file.into());
+            }
+        } else {
+            eprintln!(
+                "  {} No template for build tool '{}' (language: {}), skipping",
+                style("WARN").yellow(),
+                tool,
+                primary_lang
+            );
         }
 
         Ok(created)

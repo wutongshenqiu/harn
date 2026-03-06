@@ -18,7 +18,7 @@ templates/    # Template files embedded into the binary at compile time
 
 ```bash
 make check        # fmt-check + clippy + test (full CI locally)
-make lint         # cargo clippy
+make lint         # cargo fmt --check + clippy
 make test         # cargo test --workspace
 make fmt          # cargo fmt
 make build        # cargo build
@@ -38,6 +38,12 @@ make release      # cargo build --release
 | `/diagnose [error]` | Diagnose issues |
 | `/deps [check/update]` | Manage dependencies |
 | `/doc-audit` | Audit docs vs code |
+| `/issues SPEC-NNN` | Generate issues from Spec |
+| `/retro` | Session retrospective |
+| `/ci [PR#]` | Check CI status |
+| `/pr [title]` | Create pull request |
+| `/deploy` | Deploy |
+| `/sync-commands` | Sync slash commands |
 
 ## Extension Points
 

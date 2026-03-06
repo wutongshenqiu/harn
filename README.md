@@ -59,7 +59,7 @@ project/
 ├── harn.toml                     # Reproducible config
 ├── .claude/
 │   ├── settings.json             # Permissions + pre-commit hook
-│   └── commands/                 # 15 slash commands
+│   └── commands/                 # Slash commands
 ├── .cursor/rules                 # Cursor AI rules
 ├── .windsurfrules                # Windsurf AI rules
 ├── .github/workflows/            # CI/CD pipelines
@@ -86,7 +86,7 @@ project/
 | `ci` | CI/CD pipelines | github, gitlab, gitea |
 | `agent` | AI coding agent configs | claude, cursor, windsurf, cline, opencode |
 | `build` | Build orchestration | make, just, task |
-| `ide` | Editor configuration | vscode, zed, jetbrains |
+| `ide` | Editor configuration | vscode, zed (jetbrains, vim planned) |
 | `git` | Git config | .gitignore (language-aware) |
 | `docker` | Containerization | Dockerfile, Compose |
 | `env` | Environment management | .env.example |
@@ -143,7 +143,7 @@ harn generates language-aware Makefiles, .gitignore, linter configs, and CI work
 | Go | go targets | bin/ | .golangci.yml | golangci-lint |
 | TypeScript | npm/pnpm targets | node_modules/ | eslint + prettier | lint + tsc |
 | Dart/Flutter | flutter targets | .dart_tool/ | analysis_options | analyze |
-| Python | pip/uv targets | __pycache__/ | — | — |
+| Python | pip/uv targets | __pycache__/ | — | planned |
 
 ## Methodology
 
