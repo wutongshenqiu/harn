@@ -1,0 +1,24 @@
+.PHONY: dev build test lint fmt clean help
+
+dev:  ## Run with hot-reload
+	./gradlew bootRun
+
+build:  ## Build
+	./gradlew build
+
+test:  ## Run tests
+	./gradlew test
+
+lint:  ## Lint
+	./gradlew checkstyleMain checkstyleTest
+
+fmt:  ## Format (using google-java-format via spotless)
+	./gradlew spotlessApply
+
+clean:  ## Clean
+	./gradlew clean
+
+help:  ## Show help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help

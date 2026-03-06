@@ -1,0 +1,25 @@
+# {{ project_name }} - Unified Build
+
+# Run with hot-reload
+dev:
+    ./gradlew bootRun
+
+# Build
+build:
+    ./gradlew build
+
+# Run tests
+test:
+    ./gradlew test
+
+# Lint
+lint:
+    ./gradlew checkstyleMain checkstyleTest
+
+# Format (using google-java-format via spotless)
+fmt:
+    ./gradlew spotlessApply
+
+# Clean
+clean:
+    ./gradlew clean

@@ -60,6 +60,10 @@ impl Module for GitModule {
                             "# Python\n__pycache__/\n*.pyc\n.venv/\nvenv/\n*.egg-info/\ndist/\n\n",
                         );
                     }
+                    "java" => {
+                        content
+                            .push_str("# Java\nbuild/\n.gradle/\n*.class\n*.jar\n*.war\nout/\n\n");
+                    }
                     _ => {}
                 }
             }

@@ -240,6 +240,13 @@ impl AgentModule {
                     perms.push("Bash(pip:*)".into());
                     perms.push("Bash(uv:*)".into());
                 }
+                "java" => {
+                    perms.push("Bash(java:*)".into());
+                    perms.push("Bash(javac:*)".into());
+                    perms.push("Bash(gradle:*)".into());
+                    perms.push("Bash(./gradlew:*)".into());
+                    perms.push("Bash(mvn:*)".into());
+                }
                 _ => {}
             }
         }
