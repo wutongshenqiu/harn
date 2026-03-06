@@ -23,6 +23,10 @@ make test         # cargo test --workspace
 make fmt          # cargo fmt
 make build        # cargo build
 make release      # cargo build --release
+make clean        # cargo clean
+make install      # install to cargo bin
+make run          # run with args (make run ARGS="init .")
+make help         # show all targets (default)
 ```
 
 ## Slash Commands
@@ -44,6 +48,7 @@ make release      # cargo build --release
 | `/pr [title]` | Create pull request |
 | `/deploy` | Deploy |
 | `/sync-commands` | Sync slash commands |
+| `/run-plan` | Orchestrate multi-spec long-running plans |
 
 ## Extension Points
 
@@ -70,3 +75,16 @@ Draft -> Active -> Completed
 
 - Specs: `docs/specs/` (registry: `_index.md`)
 - Playbooks: `docs/playbooks/`
+
+## Long-Running Plans
+
+For multi-spec tasks that span context windows, use `/run-plan`:
+
+```bash
+/run-plan create "feature title" SPEC-001,SPEC-002,SPEC-003
+/run-plan next      # implement next spec (delegates to spec-implementer subagent)
+/run-plan status    # check progress
+/run-plan resume    # continue after interruption
+```
+
+State is persisted in `.claude/current-plan.md` and auto-injected via hooks on every prompt. Each spec runs in an isolated subagent with its own context window and worktree.

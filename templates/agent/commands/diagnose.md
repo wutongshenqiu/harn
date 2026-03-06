@@ -7,3 +7,4 @@ Steps:
 4. Fix the issue
 5. Verify: `make lint && make test`
 6. Report: what went wrong, how it was fixed
+7. **Ask user to confirm** — if fix involves non-trivial changes, present the plan and confirm before applying
