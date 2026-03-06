@@ -1,0 +1,51 @@
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.87"
+license = "MIT"
+repository = "https://github.com/nicepkg/harn"
+description = "Universal project harness with SDD methodology"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+# Allow common pedantic false positives
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+wildcard_imports = "allow"
+unnecessary_literal_bound = "allow"
+unused_self = "allow"
+too_many_lines = "allow"
+needless_pass_by_value = "allow"
+
+[workspace.dependencies]
+# Serialization
+serde = { version = "1", features = ["derive"] }
+toml = "1"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+dialoguer = { version = "0.12", features = ["fuzzy-select"] }
+console = "0.16"
+
+# Template
+minijinja = { version = "2", features = ["loader"] }
+include_dir = { version = "0.7", features = ["glob"] }
+
+# Error handling
+anyhow = "1"
+
+# Workspace crates
+harn-core = { path = "crates/core" }
+harn-modules = { path = "crates/modules" }
+harn-templates = { path = "crates/templates" }

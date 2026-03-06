@@ -1,0 +1,10 @@
+# {{ project_name }}
+
+## Rules
+
+- Always run `make lint` before committing
+- Always run `make test` before committing
+- Use conventional commit messages
+- Check `docs/reference/types/` before creating new types
+- Update reference docs when changing APIs/types/schema
+- No hardcoded secrets

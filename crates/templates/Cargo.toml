@@ -1,0 +1,15 @@
+[package]
+name = "harn-templates"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+harn-core.workspace = true
+minijinja.workspace = true
+include_dir.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,27 @@
+# {{ project_name }} - Unified Build
+# Customize targets for your project.
+
+.PHONY: dev build test lint fmt clean help
+
+dev:  ## Start development
+	@echo "TODO: Configure dev command"
+
+build:  ## Build
+	@echo "TODO: Configure build command"
+
+test:  ## Test
+	@echo "TODO: Configure test command"
+
+lint:  ## Lint
+	@echo "TODO: Configure lint command"
+
+fmt:  ## Format
+	@echo "TODO: Configure fmt command"
+
+clean:  ## Clean
+	@echo "TODO: Configure clean command"
+
+help:  ## Show help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help

@@ -1,0 +1,31 @@
+.PHONY: dev build test lint fmt clean check audit help
+
+dev:  ## Run dev server
+	cargo run
+
+build:  ## Build release
+	cargo build --release
+
+check:  ## Type check
+	cargo check --workspace
+
+test:  ## Run tests
+	cargo test --workspace
+
+lint:  ## Lint
+	cargo fmt --check
+	cargo clippy --workspace --all-targets -- -D warnings
+
+fmt:  ## Format
+	cargo fmt
+
+audit:  ## Security audit
+	cargo audit
+
+clean:  ## Clean
+	cargo clean
+
+help:  ## Show help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help

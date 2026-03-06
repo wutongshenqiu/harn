@@ -1,0 +1,32 @@
+.PHONY: dev build test lint fmt clean help
+
+BINARY := $(shell basename $(CURDIR))
+
+dev:  ## Run with hot-reload
+	air
+
+run:  ## Run server
+	go run ./cmd/server/
+
+build:  ## Build binary
+	go build -o bin/$(BINARY) ./cmd/server/
+
+test:  ## Run tests
+	go test -v -race -coverprofile=coverage.out ./...
+
+lint:  ## Lint
+	golangci-lint run ./...
+
+fmt:  ## Format
+	gofmt -w .
+
+tidy:  ## Tidy modules
+	go mod tidy
+
+clean:  ## Clean
+	rm -rf bin/ coverage.out
+
+help:  ## Show help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help

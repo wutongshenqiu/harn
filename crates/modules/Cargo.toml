@@ -1,0 +1,13 @@
+[package]
+name = "harn-modules"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+harn-core.workspace = true
+harn-templates.workspace = true
+anyhow.workspace = true
+
+[lints]
+workspace = true

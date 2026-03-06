@@ -1,0 +1,24 @@
+[package]
+name = "harn"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "harn"
+path = "src/main.rs"
+
+[dependencies]
+harn-core.workspace = true
+harn-modules.workspace = true
+harn-templates.workspace = true
+clap.workspace = true
+dialoguer.workspace = true
+console.workspace = true
+anyhow.workspace = true
+
+[lints]
+workspace = true

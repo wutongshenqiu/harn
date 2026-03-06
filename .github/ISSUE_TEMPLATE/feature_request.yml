@@ -1,0 +1,41 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem does this solve? What's missing?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How should this work?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      options:
+        - New module
+        - New language support
+        - New CI provider
+        - New AI tool support
+        - New build tool
+        - Template improvement
+        - CLI UX
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative approaches you've considered.

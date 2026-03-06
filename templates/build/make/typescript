@@ -1,0 +1,28 @@
+.PHONY: dev build test lint fmt clean install help
+
+dev:  ## Start dev server
+	npm run dev
+
+build:  ## Build for production
+	npm run build
+
+test:  ## Run tests
+	npm run test
+
+lint:  ## Lint + type check
+	npm run lint
+	npx tsc --noEmit
+
+fmt:  ## Format
+	npx prettier --write "src/**/*.{ts,tsx,css}"
+
+install:  ## Install dependencies
+	npm install
+
+clean:  ## Clean
+	rm -rf dist/ node_modules/.cache
+
+help:  ## Show help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help

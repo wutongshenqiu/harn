@@ -1,0 +1,251 @@
+use anyhow::Result;
+use harn_core::context::ProjectContext;
+use harn_core::module::{Module, ModuleId};
+use harn_templates::TemplateEngine;
+
+/// AI coding agent configuration module.
+///
+/// Supports multiple AI tools:
+/// - Claude Code: .claude/settings.json + .claude/commands/
+/// - Cursor: .cursor/rules
+/// - Windsurf: .windsurfrules
+/// - Cline: .clinerules
+/// - `OpenCode`: .opencode/commands/
+///
+/// Also generates CLAUDE.md and AGENTS.md project context files.
+pub struct AgentModule;
+
+impl Module for AgentModule {
+    fn id(&self) -> ModuleId {
+        "agent"
+    }
+
+    fn name(&self) -> &str {
+        "AI Agent Config"
+    }
+
+    fn description(&self) -> &str {
+        "AI coding agent configs (Claude, Cursor, Windsurf, Cline, OpenCode)"
+    }
+
+    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
+        let engine = TemplateEngine::new();
+        let vars = TemplateEngine::vars_from_context(ctx);
+        let force = ctx.force;
+        let mut created = Vec::new();
+
+        let agent_config = ctx.config.modules.agent.clone().unwrap_or_default();
+
+        // CLAUDE.md and AGENTS.md — always generated (universal context)
+        for name in &["CLAUDE.md", "AGENTS.md"] {
+            let src = format!("agent/{name}");
+            let dst = ctx.path(name);
+            if engine.render_to(&src, &vars, &dst, force)? {
+                created.push(name.to_string());
+            }
+        }
+
+        // Generate per-tool configs
+        for tool in &agent_config.tools {
+            match tool.as_str() {
+                "claude" => {
+                    created.extend(self.generate_claude(ctx, &engine, &vars, &agent_config)?);
+                }
+                "cursor" => {
+                    created.extend(self.generate_cursor(ctx, &engine, &vars)?);
+                }
+                "windsurf" => {
+                    created.extend(self.generate_windsurf(ctx, &engine, &vars)?);
+                }
+                "cline" => {
+                    created.extend(self.generate_cline(ctx, &engine, &vars)?);
+                }
+                "opencode" => {
+                    created.extend(self.generate_opencode(ctx, &engine, &vars, &agent_config)?);
+                }
+                _ => {} // Unknown tool, skip
+            }
+        }
+
+        Ok(created)
+    }
+}
+
+impl AgentModule {
+    fn generate_claude(
+        &self,
+        ctx: &ProjectContext,
+        engine: &TemplateEngine,
+        vars: &std::collections::HashMap<String, String>,
+        agent_config: &harn_core::config::AgentConfig,
+    ) -> Result<Vec<String>> {
+        let force = ctx.force;
+        let mut created = Vec::new();
+
+        // settings.json — build dynamically based on stacks
+        let settings = self.build_claude_settings(ctx);
+        let dst = ctx.path(".claude/settings.json");
+        if !dst.exists() || force {
+            if let Some(parent) = dst.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::write(&dst, settings)?;
+            created.push(".claude/settings.json".into());
+        }
+
+        // Slash commands
+        for cmd_name in &agent_config.commands {
+            let src = format!("agent/commands/{cmd_name}.md");
+            if engine.has_template(&src) {
+                let dst = ctx.path(&format!(".claude/commands/{cmd_name}.md"));
+                if engine.render_to(&src, vars, &dst, force)? {
+                    created.push(format!(".claude/commands/{cmd_name}.md"));
+                }
+            }
+        }
+
+        Ok(created)
+    }
+
+    fn generate_cursor(
+        &self,
+        ctx: &ProjectContext,
+        engine: &TemplateEngine,
+        vars: &std::collections::HashMap<String, String>,
+    ) -> Result<Vec<String>> {
+        let mut created = Vec::new();
+        let dst = ctx.path(".cursor/rules");
+        if engine.render_to("agent/cursor-rules", vars, &dst, ctx.force)? {
+            created.push(".cursor/rules".into());
+        }
+        Ok(created)
+    }
+
+    fn generate_windsurf(
+        &self,
+        ctx: &ProjectContext,
+        engine: &TemplateEngine,
+        vars: &std::collections::HashMap<String, String>,
+    ) -> Result<Vec<String>> {
+        let mut created = Vec::new();
+        let dst = ctx.path(".windsurfrules");
+        if engine.render_to("agent/windsurfrules", vars, &dst, ctx.force)? {
+            created.push(".windsurfrules".into());
+        }
+        Ok(created)
+    }
+
+    fn generate_cline(
+        &self,
+        ctx: &ProjectContext,
+        engine: &TemplateEngine,
+        vars: &std::collections::HashMap<String, String>,
+    ) -> Result<Vec<String>> {
+        let mut created = Vec::new();
+        let dst = ctx.path(".clinerules");
+        if engine.render_to("agent/clinerules", vars, &dst, ctx.force)? {
+            created.push(".clinerules".into());
+        }
+        Ok(created)
+    }
+
+    fn generate_opencode(
+        &self,
+        ctx: &ProjectContext,
+        engine: &TemplateEngine,
+        vars: &std::collections::HashMap<String, String>,
+        agent_config: &harn_core::config::AgentConfig,
+    ) -> Result<Vec<String>> {
+        let force = ctx.force;
+        let mut created = Vec::new();
+
+        for cmd_name in &agent_config.commands {
+            let src = format!("agent/commands/{cmd_name}.md");
+            if engine.has_template(&src) {
+                let dst = ctx.path(&format!(".opencode/commands/{cmd_name}.md"));
+                if engine.render_to(&src, vars, &dst, force)? {
+                    created.push(format!(".opencode/commands/{cmd_name}.md"));
+                }
+            }
+        }
+
+        Ok(created)
+    }
+
+    fn build_claude_settings(&self, ctx: &ProjectContext) -> String {
+        let mut perms = vec![
+            "Bash(make:*)".to_string(),
+            "Bash(git:*)".to_string(),
+            "Bash(gh:*)".to_string(),
+            "Bash(ls:*)".to_string(),
+            "Bash(curl:*)".to_string(),
+            "Bash(docker:*)".to_string(),
+        ];
+
+        for lang in &ctx.config.stacks.languages {
+            match lang.as_str() {
+                "rust" => {
+                    perms.push("Bash(cargo:*)".into());
+                    perms.push("Bash(rustup:*)".into());
+                }
+                "go" => {
+                    perms.push("Bash(go:*)".into());
+                }
+                "typescript" | "javascript" => {
+                    let pkg = "npm"; // TODO: detect from config
+                    perms.push(format!("Bash({pkg}:*)"));
+                    perms.push("Bash(npx:*)".into());
+                    perms.push("Bash(node:*)".into());
+                }
+                "dart" | "flutter" => {
+                    perms.push("Bash(flutter:*)".into());
+                    perms.push("Bash(dart:*)".into());
+                }
+                "python" => {
+                    perms.push("Bash(python3:*)".into());
+                    perms.push("Bash(pip:*)".into());
+                    perms.push("Bash(uv:*)".into());
+                }
+                _ => {}
+            }
+        }
+
+        // Also check custom permissions from config
+        if let Some(agent_cfg) = &ctx.config.modules.agent {
+            if let Some(custom_perms) = agent_cfg.permissions.get("claude") {
+                for p in custom_perms {
+                    if !perms.contains(p) {
+                        perms.push(p.clone());
+                    }
+                }
+            }
+        }
+
+        let perms_json: Vec<String> = perms.iter().map(|p| format!("      \"{p}\"")).collect();
+        let hook_cmd = "make lint && make test";
+
+        format!(
+            r#"{{
+  "permissions": {{
+    "allow": [
+{}
+    ]
+  }},
+  "hooks": {{
+    "PreToolUse": [
+      {{
+        "matcher": "Bash(git commit*)",
+        "hooks": [
+          {{
+            "type": "command",
+            "command": "{hook_cmd}"
+          }}
+        ]
+      }}
+    ]
+  }}
+}}"#,
+            perms_json.join(",\n")
+        )
+    }
+}

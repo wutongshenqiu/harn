@@ -1,0 +1,66 @@
+name: Bug Report
+description: Report a bug in harn
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A clear description of the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior.
+      value: |
+        1. Run `harn ...`
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: harn version
+      description: Output of `harn --version`
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux (x86_64)
+        - Linux (aarch64)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: config
+    attributes:
+      label: harn.toml (if relevant)
+      description: Paste your config file if relevant.
+      render: toml

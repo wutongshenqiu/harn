@@ -1,0 +1,27 @@
+.PHONY: dev build test lint fmt clean gen help
+
+dev:  ## Run debug
+	flutter run
+
+build:  ## Build release APK
+	flutter build apk --release
+
+test:  ## Run tests
+	flutter test
+
+lint:  ## Analyze
+	flutter analyze
+
+fmt:  ## Format
+	dart format lib/ test/
+
+gen:  ## Code generation
+	flutter pub run build_runner build --delete-conflicting-outputs
+
+clean:  ## Clean
+	flutter clean
+
+help:  ## Show help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help
