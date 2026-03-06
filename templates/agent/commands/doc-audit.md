@@ -8,3 +8,4 @@ Steps:
 5. Compare CLAUDE.md slash commands table with `.claude/commands/` files
 6. Compare README feature claims with actual implementation
 7. Report discrepancies table
+8. **Ask user which items to fix now** — present the actionable items and confirm before proceeding
