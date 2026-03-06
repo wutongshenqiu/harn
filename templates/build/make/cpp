@@ -1,0 +1,26 @@
+.PHONY: dev build test lint fmt clean help
+
+BUILD_DIR := build
+
+dev:  ## Build and run (debug)
+	cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Debug && cmake --build $(BUILD_DIR) && ./$(BUILD_DIR)/main
+
+build:  ## Build (release)
+	cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release && cmake --build $(BUILD_DIR)
+
+test:  ## Run tests
+	cmake -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Debug && cmake --build $(BUILD_DIR) && ctest --test-dir $(BUILD_DIR) --output-on-failure
+
+lint:  ## Lint (clang-tidy)
+	clang-tidy src/*.cpp -- -Iinclude
+
+fmt:  ## Format (clang-format)
+	find src include -name '*.cpp' -o -name '*.h' -o -name '*.hpp' | xargs clang-format -i
+
+clean:  ## Clean
+	rm -rf $(BUILD_DIR)
+
+help:  ## Show help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+.DEFAULT_GOAL := help

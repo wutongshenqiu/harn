@@ -54,7 +54,7 @@ make help         # show all targets (default)
 
 - New module: implement Module trait in `crates/modules/src/`, register in `registry.rs`, add templates
 - New CI provider: add templates in `templates/ci/<provider>/`, update `crates/modules/src/ci.rs`
-- New language: add Makefile template, .gitignore fragment, linter config, CI steps
+- New language: add build templates (`templates/build/{make,just,task}/<lang>`), `.gitignore` fragment (`git.rs`), quality config (`quality.rs` + template), agent permissions (`agent.rs`), Docker template (`templates/docker/Dockerfile.<lang>`)
 - New AI tool: add template in `templates/agent/`, update `crates/modules/src/agent.rs`
 
 ## Coding Rules

@@ -91,6 +91,15 @@ impl Module for QualityModule {
                         }
                     }
                 }
+                "cpp" | "c" => {
+                    let src = "quality/clang-format";
+                    if engine.has_template(src) {
+                        let dst = ctx.path(".clang-format");
+                        if engine.render_to(src, &vars, &dst, force)? {
+                            created.push(".clang-format".into());
+                        }
+                    }
+                }
                 _ => {}
             }
         }

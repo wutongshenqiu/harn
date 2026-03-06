@@ -6,16 +6,16 @@ All specifications for harn.
 
 | ID       | Title                                          | Status    | Location                        |
 |----------|------------------------------------------------|-----------|---------------------------------|
+| SPEC-001 | Complete Python Language Support                | Completed | completed/SPEC-001/             |
+| SPEC-002 | Complete TypeScript Quality Templates           | Completed | completed/SPEC-002/             |
+| SPEC-003 | Add Java Language Support                       | Completed | completed/SPEC-003/             |
+| SPEC-004 | Add C/C++ Language Support                      | Completed | completed/SPEC-004/             |
+| SPEC-005 | Add Docker Templates for All Languages          | Completed | completed/SPEC-005/             |
 
 ## Active
 
 | ID       | Title                                          | Status    | Location                        |
 |----------|------------------------------------------------|-----------|---------------------------------|
-| SPEC-001 | Complete Python Language Support                | Active    | active/SPEC-001/                |
-| SPEC-002 | Complete TypeScript Quality Templates           | Active    | active/SPEC-002/                |
-| SPEC-003 | Add Java Language Support                       | Active    | active/SPEC-003/                |
-| SPEC-004 | Add C/C++ Language Support                      | Active    | active/SPEC-004/                |
-| SPEC-005 | Add Docker Templates for All Languages          | Active    | active/SPEC-005/                |
 
 ## How to Create a New Spec
 

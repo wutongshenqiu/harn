@@ -64,12 +64,16 @@ impl Module for GitModule {
                         content
                             .push_str("# Java\nbuild/\n.gradle/\n*.class\n*.jar\n*.war\nout/\n\n");
                     }
+                    "cpp" | "c" => {
+                        content.push_str("# C/C++\nbuild/\ncmake-build-*/\n*.o\n*.a\n*.so\n*.dylib\n*.exe\ncompile_commands.json\n\n");
+                    }
                     _ => {}
                 }
             }
 
             content.push_str("# Logs\n*.log\nlogs/\n\n");
-            content.push_str("# Temp\ntmp/\n.tmp/\n");
+            content.push_str("# Temp\ntmp/\n.tmp/\n\n");
+            content.push_str("# Claude Code worktrees\n.claude/worktrees/\n");
 
             let dst = ctx.path(".gitignore");
             if !dst.exists() || force {
