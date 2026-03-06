@@ -68,3 +68,9 @@ _New config fields, environment variables._
 - **Unit tests:** ...
 - **Integration tests:** ...
 - **Manual verification:** ...
+
+## Revision Log
+
+| Date | Section | Change | Reason |
+|------|---------|--------|--------|
+|      |         |        |        |
