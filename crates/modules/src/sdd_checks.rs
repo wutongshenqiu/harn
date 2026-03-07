@@ -486,6 +486,127 @@ pub fn check_config_consistency(root: &Path) -> CheckResult {
     result
 }
 
+// Playbook files that should exist in both templates/sdd/playbooks/ and docs/playbooks/
+const SDD_PLAYBOOK_FILES: &[&str] = &[
+    "sdd/playbooks/create-new-spec.md",
+    "sdd/playbooks/coding-agent-workflow.md",
+    "sdd/playbooks/write-prd-td.md",
+    "sdd/playbooks/add-new-language.md",
+];
+
+/// Check 6: Playbook sync between templates/ (embedded) and docs/.
+pub fn check_playbook_sync(root: &Path) -> CheckResult {
+    let mut result = CheckResult::default();
+    let check = "playbook-sync";
+
+    let playbooks_dir = root.join("docs/playbooks");
+    if !playbooks_dir.is_dir() {
+        return result;
+    }
+
+    // Check that every embedded playbook has a corresponding file in docs/playbooks/
+    for embedded_path in SDD_PLAYBOOK_FILES {
+        let filename = Path::new(embedded_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or_default();
+
+        let project_path = playbooks_dir.join(filename);
+        let Some(embedded_content) = TemplateEngine::get_embedded_content(embedded_path) else {
+            continue;
+        };
+
+        if project_path.exists() {
+            CheckResult::ok(check, format!("playbooks/{filename} present"));
+        } else {
+            result.push(Diagnostic {
+                severity: Severity::Warning,
+                check: check.into(),
+                message: format!("playbooks/{filename} missing (exists in built-in templates)"),
+                fix: Some(AutoFix::UpdateTemplate {
+                    path: format!("docs/playbooks/{filename}"),
+                    content: embedded_content.to_vec(),
+                }),
+            });
+        }
+    }
+
+    // Check for docs/playbooks/ files that don't exist in embedded templates
+    if let Ok(rd) = std::fs::read_dir(&playbooks_dir) {
+        let embedded_filenames: Vec<&str> = SDD_PLAYBOOK_FILES
+            .iter()
+            .filter_map(|p| Path::new(p).file_name().and_then(|n| n.to_str()))
+            .collect();
+
+        for entry in rd.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            let is_md = Path::new(&name)
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("md"));
+            if is_md && !embedded_filenames.contains(&name.as_str()) {
+                result.push(Diagnostic {
+                    severity: Severity::Warning,
+                    check: check.into(),
+                    message: format!(
+                        "playbooks/{name} exists locally but not in built-in templates"
+                    ),
+                    fix: None,
+                });
+            }
+        }
+    }
+
+    result
+}
+
+/// Check 7: CLAUDE.md consistency with .claude/commands/.
+pub fn check_claude_md_consistency(root: &Path) -> CheckResult {
+    let mut result = CheckResult::default();
+    let check = "claude-md-consistency";
+
+    let claude_md_path = root.join("CLAUDE.md");
+    let Ok(claude_md) = std::fs::read_to_string(&claude_md_path) else {
+        // No CLAUDE.md — nothing to check
+        return result;
+    };
+
+    let commands_dir = root.join(".claude/commands");
+    if !commands_dir.is_dir() {
+        return result;
+    }
+
+    // Collect command names from .claude/commands/
+    let mut fs_commands: Vec<String> = Vec::new();
+    if let Ok(rd) = std::fs::read_dir(&commands_dir) {
+        for entry in rd.flatten() {
+            let name = entry.file_name().to_string_lossy().to_string();
+            if let Some(cmd) = name.strip_suffix(".md") {
+                fs_commands.push(cmd.to_string());
+            }
+        }
+    }
+    fs_commands.sort();
+
+    // Check each command file has a corresponding entry in CLAUDE.md slash commands table
+    for cmd in &fs_commands {
+        let pattern = format!("/{cmd}");
+        if claude_md.contains(&pattern) {
+            CheckResult::ok(check, format!("/{cmd} documented in CLAUDE.md"));
+        } else {
+            result.push(Diagnostic {
+                severity: Severity::Warning,
+                check: check.into(),
+                message: format!(
+                    "/{cmd} exists in .claude/commands/ but not found in CLAUDE.md slash commands table"
+                ),
+                fix: None,
+            });
+        }
+    }
+
+    result
+}
+
 /// Run all SDD health checks.
 pub fn run_all_checks(root: &Path) -> CheckResult {
     let mut result = CheckResult::default();
@@ -508,6 +629,14 @@ pub fn run_all_checks(root: &Path) -> CheckResult {
 
     println!("{}", console::style("[Config Consistency]").bold());
     result.merge(check_config_consistency(root));
+    println!();
+
+    println!("{}", console::style("[Playbook Sync]").bold());
+    result.merge(check_playbook_sync(root));
+    println!();
+
+    println!("{}", console::style("[CLAUDE.md Consistency]").bold());
+    result.merge(check_claude_md_consistency(root));
 
     result
 }
@@ -699,6 +828,73 @@ mod tests {
         setup_sdd_project(tmp.path());
         let r = check_config_consistency(tmp.path());
         assert_eq!(r.exit_code(), 0);
+    }
+
+    #[test]
+    fn playbook_sync_all_present() {
+        let tmp = tempfile::tempdir().unwrap();
+        setup_sdd_project(tmp.path());
+        fs::create_dir_all(tmp.path().join("docs/playbooks")).unwrap();
+        for path in SDD_PLAYBOOK_FILES {
+            if let Some(content) = TemplateEngine::get_embedded_content(path) {
+                let filename = Path::new(path).file_name().unwrap();
+                fs::write(tmp.path().join("docs/playbooks").join(filename), content).unwrap();
+            }
+        }
+        let r = check_playbook_sync(tmp.path());
+        assert_eq!(r.exit_code(), 0);
+    }
+
+    #[test]
+    fn playbook_sync_missing_file() {
+        let tmp = tempfile::tempdir().unwrap();
+        setup_sdd_project(tmp.path());
+        fs::create_dir_all(tmp.path().join("docs/playbooks")).unwrap();
+        // Only write one playbook — others should be flagged
+        if let Some(content) =
+            TemplateEngine::get_embedded_content("sdd/playbooks/create-new-spec.md")
+        {
+            fs::write(
+                tmp.path().join("docs/playbooks/create-new-spec.md"),
+                content,
+            )
+            .unwrap();
+        }
+        let r = check_playbook_sync(tmp.path());
+        assert!(r.has_warnings());
+    }
+
+    #[test]
+    fn claude_md_consistency_all_documented() {
+        let tmp = tempfile::tempdir().unwrap();
+        let commands_dir = tmp.path().join(".claude/commands");
+        fs::create_dir_all(&commands_dir).unwrap();
+        fs::write(commands_dir.join("ship.md"), "ship command").unwrap();
+        fs::write(commands_dir.join("test.md"), "test command").unwrap();
+        fs::write(
+            tmp.path().join("CLAUDE.md"),
+            "# Project\n\n| `/ship` | Ship it |\n| `/test` | Test it |\n",
+        )
+        .unwrap();
+        let r = check_claude_md_consistency(tmp.path());
+        assert_eq!(r.exit_code(), 0);
+    }
+
+    #[test]
+    fn claude_md_consistency_missing_command() {
+        let tmp = tempfile::tempdir().unwrap();
+        let commands_dir = tmp.path().join(".claude/commands");
+        fs::create_dir_all(&commands_dir).unwrap();
+        fs::write(commands_dir.join("ship.md"), "ship command").unwrap();
+        fs::write(commands_dir.join("secret.md"), "secret command").unwrap();
+        fs::write(
+            tmp.path().join("CLAUDE.md"),
+            "# Project\n\n| `/ship` | Ship it |\n",
+        )
+        .unwrap();
+        let r = check_claude_md_consistency(tmp.path());
+        assert!(r.has_warnings());
+        assert!(r.diagnostics[0].message.contains("secret"));
     }
 
     #[test]

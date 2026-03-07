@@ -79,6 +79,8 @@ impl Module for SddModule {
             let playbook_files = [
                 "sdd/playbooks/create-new-spec.md",
                 "sdd/playbooks/coding-agent-workflow.md",
+                "sdd/playbooks/write-prd-td.md",
+                "sdd/playbooks/add-new-language.md",
             ];
 
             for src in &playbook_files {
