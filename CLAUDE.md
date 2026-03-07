@@ -82,9 +82,12 @@ For multi-spec tasks that span context windows, use `/run-plan`:
 
 ```bash
 /run-plan create "feature title" SPEC-001,SPEC-002,SPEC-003
-/run-plan next      # implement next spec (delegates to spec-implementer subagent)
+/run-plan create "feature title" SPEC-007 --full   # research → write → implement lifecycle
+/run-plan next      # execute next phase (delegates to appropriate subagent)
 /run-plan status    # check progress
 /run-plan resume    # continue after interruption
 ```
 
-State is persisted in `.claude/current-plan.md` and auto-injected via hooks on every prompt. Each spec runs in an isolated subagent with its own context window and worktree.
+Phase types: `research:` (spec-researcher), `write:` (spec-writer), `implement:` (spec-implementer).
+
+State is persisted in `.claude/current-plan.md` and auto-injected via hooks on every prompt. Each phase runs in an isolated subagent with its own context window.
