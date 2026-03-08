@@ -3,9 +3,8 @@ mod interactive;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use console::style;
-use harn_core::{HarnConfig, ProjectContext};
+use harn_core::{HarnConfig, ProjectContext, url_encode};
 use harn_modules::ModuleRegistry;
-use std::fmt::Write as _;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -509,22 +508,6 @@ fn open_issue_in_browser(title: &str, body: &str, label: &str) -> Result<()> {
     } else {
         anyhow::bail!("failed to open browser")
     }
-}
-
-fn url_encode(s: &str) -> String {
-    let mut result = String::with_capacity(s.len() * 3);
-    for byte in s.bytes() {
-        match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-                result.push(byte as char);
-            }
-            _ => {
-                result.push('%');
-                let _ = write!(result, "{byte:02X}");
-            }
-        }
-    }
-    result
 }
 
 // ---------------------------------------------------------------------------
