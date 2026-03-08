@@ -27,6 +27,8 @@ make clean        # cargo clean
 make install      # install to cargo bin
 make run          # run with args (make run ARGS="init .")
 make help         # show all targets (default)
+
+harn issue        # submit an issue to the harn repo (interactive)
 ```
 
 ## Slash Commands
