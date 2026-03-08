@@ -5,7 +5,9 @@ use clap::{Parser, Subcommand};
 use console::style;
 use harn_core::{HarnConfig, ProjectContext};
 use harn_modules::ModuleRegistry;
+use std::fmt::Write as _;
 use std::path::PathBuf;
+use std::process::Command;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -85,6 +87,9 @@ enum Commands {
         #[arg(default_value = "harn.toml")]
         output: PathBuf,
     },
+
+    /// Submit an issue to the harn project
+    Issue,
 }
 
 fn main() -> Result<()> {
@@ -108,6 +113,7 @@ fn main() -> Result<()> {
             Ok(())
         }
         Commands::Example { output } => cmd_example(output),
+        Commands::Issue => cmd_issue(),
     }
 }
 
@@ -375,6 +381,150 @@ fn cmd_example(output: PathBuf) -> Result<()> {
         output.display()
     );
     Ok(())
+}
+
+fn cmd_issue() -> Result<()> {
+    println!(
+        "{} v{VERSION} — Submit an Issue",
+        style("harn").cyan().bold()
+    );
+    println!();
+
+    let type_options = &["Bug Report", "Feature Request", "Question"];
+    let type_idx = dialoguer::FuzzySelect::new()
+        .with_prompt("Issue type")
+        .items(type_options)
+        .default(0)
+        .interact()?;
+    let issue_type = type_options[type_idx];
+
+    let title: String = dialoguer::Input::new()
+        .with_prompt("Title")
+        .interact_text()?;
+
+    let description: String = dialoguer::Input::new()
+        .with_prompt("Description (optional)")
+        .allow_empty(true)
+        .interact_text()?;
+
+    let label = match type_idx {
+        0 => "bug",
+        1 => "enhancement",
+        _ => "question",
+    };
+
+    // Build body
+    let env_info = format!(
+        "**harn version:** {VERSION}\n**OS:** {} {}\n**Arch:** {}",
+        std::env::consts::OS,
+        std::env::consts::FAMILY,
+        std::env::consts::ARCH,
+    );
+
+    let config_summary = load_config_summary().unwrap_or_default();
+
+    let body =
+        format!("## {issue_type}\n\n{description}\n\n## Environment\n\n{env_info}{config_summary}");
+
+    println!();
+
+    // Try gh CLI first
+    let gh_result = Command::new("gh")
+        .args([
+            "issue",
+            "create",
+            "--repo",
+            "wutongshenqiu/harn",
+            "--title",
+            &title,
+            "--body",
+            &body,
+            "--label",
+            label,
+        ])
+        .output();
+
+    match gh_result {
+        Ok(output) if output.status.success() => {
+            let url = String::from_utf8_lossy(&output.stdout);
+            println!(
+                "{} Issue created: {}",
+                style("OK").green().bold(),
+                url.trim()
+            );
+        }
+        _ => {
+            // Fallback: open in browser
+            if open_issue_in_browser(&title, &body, label).is_err() {
+                // Final fallback: print URL
+                let url = format!(
+                    "https://github.com/wutongshenqiu/harn/issues/new?title={}&body={}&labels={}",
+                    url_encode(&title),
+                    url_encode(&body),
+                    url_encode(label),
+                );
+                println!("Open this URL to submit your issue:\n");
+                println!("  {url}");
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn load_config_summary() -> Option<String> {
+    let config = HarnConfig::load(std::path::Path::new("harn.toml")).ok()?;
+    let langs = if config.stacks.languages.is_empty() {
+        "none".to_string()
+    } else {
+        config.stacks.languages.join(", ")
+    };
+    let modules = config.enabled_modules().join(", ");
+    Some(format!("\n**Languages:** {langs}\n**Modules:** {modules}"))
+}
+
+fn open_issue_in_browser(title: &str, body: &str, label: &str) -> Result<()> {
+    let url = format!(
+        "https://github.com/wutongshenqiu/harn/issues/new?title={}&body={}&labels={}",
+        url_encode(title),
+        url_encode(body),
+        url_encode(label),
+    );
+
+    let (cmd, args): (&str, &[&str]) = if cfg!(target_os = "macos") {
+        ("open", &[&url])
+    } else if cfg!(target_os = "windows") {
+        ("cmd", &["/C", "start", &url])
+    } else {
+        ("xdg-open", &[&url])
+    };
+
+    let status = Command::new(cmd).args(args).status()?;
+    if status.success() {
+        println!(
+            "{} Opened issue form in browser.",
+            style("OK").green().bold()
+        );
+        Ok(())
+    } else {
+        anyhow::bail!("failed to open browser")
+    }
+}
+
+fn url_encode(s: &str) -> String {
+    let mut result = String::with_capacity(s.len() * 3);
+    for byte in s.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                result.push(byte as char);
+            }
+            _ => {
+                result.push('%');
+                let _ = write!(result, "{byte:02X}");
+            }
+        }
+    }
+    result
 }
 
 // ---------------------------------------------------------------------------
