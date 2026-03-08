@@ -1,3 +1,4 @@
+use harn_modules::sdd::SDD_PLAYBOOK_FILES;
 use harn_templates::TemplateEngine;
 
 /// Verify that all build tool + language combinations have templates.
@@ -66,6 +67,29 @@ fn command_templates_exist_for_all_defaults() {
         assert!(
             engine.has_template(&path),
             "Missing command template: {path}"
+        );
+    }
+}
+
+/// Verify that every playbook in templates/sdd/playbooks/ is listed in `SDD_PLAYBOOK_FILES`.
+#[test]
+fn playbook_templates_covered_by_sdd_module() {
+    let engine = TemplateEngine::new();
+    let embedded = engine.list_templates("sdd/playbooks/");
+
+    // Every embedded playbook must be in the const
+    for path in &embedded {
+        assert!(
+            SDD_PLAYBOOK_FILES.contains(&path.as_str()),
+            "Playbook template '{path}' exists in templates/ but is not listed in SDD_PLAYBOOK_FILES — add it to sdd.rs"
+        );
+    }
+
+    // Every entry in the const must exist as an embedded template
+    for path in SDD_PLAYBOOK_FILES {
+        assert!(
+            engine.has_template(path),
+            "SDD_PLAYBOOK_FILES lists '{path}' but the template file does not exist"
         );
     }
 }

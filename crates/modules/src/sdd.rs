@@ -3,6 +3,15 @@ use harn_core::context::ProjectContext;
 use harn_core::module::{Module, ModuleId};
 use harn_templates::TemplateEngine;
 
+/// Playbook template paths shipped with the SDD module.
+/// Used by both generation (`SddModule`) and doctor checks (`sdd_checks`).
+pub const SDD_PLAYBOOK_FILES: &[&str] = &[
+    "sdd/playbooks/create-new-spec.md",
+    "sdd/playbooks/coding-agent-workflow.md",
+    "sdd/playbooks/write-prd-td.md",
+    "sdd/playbooks/add-new-language.md",
+];
+
 /// Spec-Driven Development documentation structure.
 ///
 /// Generates:
@@ -76,14 +85,7 @@ impl Module for SddModule {
         let include_playbooks = sdd_config.is_none_or(|c| c.playbooks);
 
         if include_playbooks {
-            let playbook_files = [
-                "sdd/playbooks/create-new-spec.md",
-                "sdd/playbooks/coding-agent-workflow.md",
-                "sdd/playbooks/write-prd-td.md",
-                "sdd/playbooks/add-new-language.md",
-            ];
-
-            for src in &playbook_files {
+            for src in SDD_PLAYBOOK_FILES {
                 let rel = src.strip_prefix("sdd/").unwrap();
                 let dst = ctx.path(&format!("docs/{rel}"));
                 if engine.copy_to(src, &dst, force)? {

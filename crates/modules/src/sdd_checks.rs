@@ -1,3 +1,4 @@
+use crate::sdd::SDD_PLAYBOOK_FILES;
 use harn_core::doctor::{AutoFix, CheckResult, Diagnostic, Severity};
 use harn_templates::TemplateEngine;
 use std::collections::HashMap;
@@ -485,14 +486,6 @@ pub fn check_config_consistency(root: &Path) -> CheckResult {
 
     result
 }
-
-// Playbook files that should exist in both templates/sdd/playbooks/ and docs/playbooks/
-const SDD_PLAYBOOK_FILES: &[&str] = &[
-    "sdd/playbooks/create-new-spec.md",
-    "sdd/playbooks/coding-agent-workflow.md",
-    "sdd/playbooks/write-prd-td.md",
-    "sdd/playbooks/add-new-language.md",
-];
 
 /// Check 6: Playbook sync between templates/ (embedded) and docs/.
 pub fn check_playbook_sync(root: &Path) -> CheckResult {
