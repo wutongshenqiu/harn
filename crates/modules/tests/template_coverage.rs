@@ -60,6 +60,7 @@ fn command_templates_exist_for_all_defaults() {
         "ci",
         "pr",
         "deploy",
+        "run-plan",
     ];
 
     for cmd in &default_commands {
@@ -67,6 +68,30 @@ fn command_templates_exist_for_all_defaults() {
         assert!(
             engine.has_template(&path),
             "Missing command template: {path}"
+        );
+    }
+}
+
+/// Verify that every command template has a description entry in agent.rs.
+/// Reads the source file and checks that each template name appears in
+/// `build_slash_commands_table`.
+#[test]
+fn slash_command_descriptions_cover_all_templates() {
+    let engine = TemplateEngine::new();
+    let templates = engine.list_templates("agent/commands/");
+
+    let agent_src =
+        std::fs::read_to_string("src/agent.rs").expect("Could not read agent.rs source");
+
+    for tpl in &templates {
+        // template path is "agent/commands/foo.md", extract "foo"
+        let name = tpl
+            .strip_prefix("agent/commands/")
+            .and_then(|s| s.strip_suffix(".md"))
+            .unwrap_or(tpl);
+        assert!(
+            agent_src.contains(&format!("\"{name}\"")),
+            "Command template '{name}' exists but has no entry in build_slash_commands_table() — add it to agent.rs"
         );
     }
 }

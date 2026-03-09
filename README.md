@@ -57,11 +57,8 @@ project/
 ├── AGENTS.md                     # Universal agent context
 ├── Makefile                      # Unified build (language-aware)
 ├── harn.toml                     # Reproducible config
-├── .claude/
-│   ├── settings.json             # Permissions + pre-commit hook
-│   └── commands/                 # Slash commands
-├── .cursor/rules                 # Cursor AI rules
-├── .windsurfrules                # Windsurf AI rules
+├── .claude/                      # Claude Code config + slash commands
+├── .<tool>/                      # Per-tool AI rules (cursor, windsurf, cline, qoder, ...)
 ├── .github/workflows/            # CI/CD pipelines
 ├── .vscode/                      # Editor settings
 ├── .editorconfig                 # Cross-editor formatting
@@ -84,7 +81,7 @@ project/
 |--------|-------------|-------------|
 | `sdd` | Spec-Driven Development docs | playbooks, reference |
 | `ci` | CI/CD pipelines | github, gitlab, gitea |
-| `agent` | AI coding agent configs | claude, cursor, windsurf, cline, opencode |
+| `agent` | AI coding agent configs | claude, cursor, windsurf, cline, opencode, qoder |
 | `build` | Build orchestration | make, just, task |
 | `ide` | Editor configuration | vscode, zed (jetbrains, vim planned) |
 | `git` | Git config | .gitignore (language-aware) |
@@ -165,8 +162,10 @@ harn init [dir]              Initialize a new project (interactive)
 harn init [dir] -c harn.toml Config-driven init (non-interactive)
 harn add <module> [dir]      Add a module to existing project
 harn spec [title] -d [dir]   Create a new Spec
+harn doctor [dir]            Diagnose SDD project health
 harn modules                 List available modules
 harn example                 Generate example harn.toml
+harn issue                   Submit an issue to harn project
 ```
 
 ## Contributing
