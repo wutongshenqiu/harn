@@ -3,7 +3,7 @@
 ## Development Setup
 
 ```bash
-git clone https://github.com/nicepkg/harn.git
+git clone https://github.com/wutongshenqiu/harn.git
 cd harn
 cargo build
 ```

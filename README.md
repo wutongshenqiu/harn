@@ -2,8 +2,8 @@
 
 Universal project harness with Spec-Driven Development (SDD) methodology.
 
-[![CI](https://github.com/nicepkg/harn/actions/workflows/ci.yml/badge.svg)](https://github.com/nicepkg/harn/actions/workflows/ci.yml)
-[![Release](https://github.com/nicepkg/harn/actions/workflows/release.yml/badge.svg)](https://github.com/nicepkg/harn/releases)
+[![CI](https://github.com/wutongshenqiu/harn/actions/workflows/ci.yml/badge.svg)](https://github.com/wutongshenqiu/harn/actions/workflows/ci.yml)
+[![Release](https://github.com/wutongshenqiu/harn/actions/workflows/release.yml/badge.svg)](https://github.com/wutongshenqiu/harn/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **harn** equips your project with production-grade development infrastructure in one command: SDD documentation, AI agent configs, CI/CD pipelines, build orchestration, and quality gates.
@@ -16,22 +16,22 @@ Distilled from patterns across multiple production Rust/Go/TypeScript/Flutter/Py
 
 ```bash
 # macOS (Apple Silicon)
-curl -sSL https://github.com/nicepkg/harn/releases/latest/download/harn-aarch64-apple-darwin.tar.gz | tar xz
+curl -sSL https://github.com/wutongshenqiu/harn/releases/latest/download/harn-aarch64-apple-darwin.tar.gz | tar xz
 sudo mv harn /usr/local/bin/
 
 # macOS (Intel)
-curl -sSL https://github.com/nicepkg/harn/releases/latest/download/harn-x86_64-apple-darwin.tar.gz | tar xz
+curl -sSL https://github.com/wutongshenqiu/harn/releases/latest/download/harn-x86_64-apple-darwin.tar.gz | tar xz
 sudo mv harn /usr/local/bin/
 
 # Linux (x86_64)
-curl -sSL https://github.com/nicepkg/harn/releases/latest/download/harn-x86_64-unknown-linux-gnu.tar.gz | tar xz
+curl -sSL https://github.com/wutongshenqiu/harn/releases/latest/download/harn-x86_64-unknown-linux-gnu.tar.gz | tar xz
 sudo mv harn /usr/local/bin/
 ```
 
 ### From Source
 
 ```bash
-cargo install --git https://github.com/nicepkg/harn
+cargo install --git https://github.com/wutongshenqiu/harn
 ```
 
 ## Quick Start
@@ -58,7 +58,11 @@ project/
 ├── Makefile                      # Unified build (language-aware)
 ├── harn.toml                     # Reproducible config
 ├── .claude/                      # Claude Code config + slash commands
-├── .<tool>/                      # Per-tool AI rules (cursor, windsurf, cline, qoder, ...)
+├── .cursor/rules                 # Cursor rules
+├── .windsurfrules                # Windsurf rules
+├── .clinerules                   # Cline rules
+├── .qoder/rules/                 # Qoder rules
+├── .opencode/commands/           # OpenCode commands
 ├── .github/workflows/            # CI/CD pipelines
 ├── .vscode/                      # Editor settings
 ├── .editorconfig                 # Cross-editor formatting
@@ -80,7 +84,7 @@ project/
 | Module | Description | Key Options |
 |--------|-------------|-------------|
 | `sdd` | Spec-Driven Development docs | playbooks, reference |
-| `ci` | CI/CD pipelines | github, gitlab, gitea |
+| `ci` | CI/CD pipelines | github, gitlab, gitea/codeberg |
 | `agent` | AI coding agent configs | claude, cursor, windsurf, cline, opencode, qoder |
 | `build` | Build orchestration | make, just, task |
 | `ide` | Editor configuration | vscode, zed (jetbrains, vim planned) |
