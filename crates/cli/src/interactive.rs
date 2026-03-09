@@ -171,8 +171,8 @@ fn gather_ci_config() -> Result<CiConfig> {
 }
 
 fn gather_agent_config() -> Result<AgentConfig> {
-    let tool_options = &["claude", "cursor", "windsurf", "cline", "opencode"];
-    let tool_defaults = vec![true, false, false, false, false];
+    let tool_options = &["claude", "cursor", "windsurf", "cline", "opencode", "qoder"];
+    let tool_defaults = vec![true, false, false, false, false, false];
     let selected = MultiSelect::new()
         .with_prompt("AI coding tools")
         .items(tool_options)

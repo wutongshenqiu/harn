@@ -11,6 +11,7 @@ use harn_templates::TemplateEngine;
 /// - Windsurf: .windsurfrules
 /// - Cline: .clinerules
 /// - `OpenCode`: .opencode/commands/
+/// - Qoder: .qoder/rules/
 ///
 /// Also generates CLAUDE.md and AGENTS.md project context files.
 pub struct AgentModule;
@@ -25,7 +26,7 @@ impl Module for AgentModule {
     }
 
     fn description(&self) -> &str {
-        "AI coding agent configs (Claude, Cursor, Windsurf, Cline, OpenCode)"
+        "AI coding agent configs (Claude, Cursor, Windsurf, Cline, OpenCode, Qoder)"
     }
 
     fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
@@ -66,6 +67,9 @@ impl Module for AgentModule {
                 }
                 "opencode" => {
                     created.extend(self.generate_opencode(ctx, &engine, &vars, &agent_config)?);
+                }
+                "qoder" => {
+                    created.extend(self.generate_qoder(ctx, &engine, &vars)?);
                 }
                 _ => {} // Unknown tool, skip
             }
@@ -176,6 +180,20 @@ impl AgentModule {
         Ok(created)
     }
 
+    fn generate_qoder(
+        &self,
+        ctx: &ProjectContext,
+        engine: &TemplateEngine,
+        vars: &std::collections::HashMap<String, String>,
+    ) -> Result<Vec<String>> {
+        let mut created = Vec::new();
+        let dst = ctx.path(".qoder/rules/harn.md");
+        if engine.render_to("agent/qoderrules", vars, &dst, ctx.force)? {
+            created.push(".qoder/rules/harn.md".into());
+        }
+        Ok(created)
+    }
+
     fn build_slash_commands_table(commands: &[String]) -> String {
         let descriptions: &[(&str, &str, &str)] = &[
             ("ship", "/ship [msg]", "Lint + test + commit + push + PR"),
@@ -193,6 +211,11 @@ impl AgentModule {
             ("pr", "/pr [title]", "Create pull request"),
             ("deploy", "/deploy", "Deploy"),
             ("sync-commands", "/sync-commands", "Sync slash commands"),
+            (
+                "run-plan",
+                "/run-plan",
+                "Orchestrate multi-spec long-running plans",
+            ),
         ];
 
         let mut rows = Vec::new();
