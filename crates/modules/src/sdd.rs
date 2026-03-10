@@ -34,7 +34,7 @@ impl Module for SddModule {
     }
 
     fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
-        let engine = TemplateEngine::new();
+        let engine = TemplateEngine::with_dry_run(ctx.dry_run);
         let vars = TemplateEngine::vars_from_context(ctx);
         let force = ctx.force;
         let mut created = Vec::new();
@@ -56,8 +56,10 @@ impl Module for SddModule {
         }
 
         // Create active/completed directories
-        std::fs::create_dir_all(ctx.path("docs/specs/active"))?;
-        std::fs::create_dir_all(ctx.path("docs/specs/completed"))?;
+        if !ctx.dry_run {
+            std::fs::create_dir_all(ctx.path("docs/specs/active"))?;
+            std::fs::create_dir_all(ctx.path("docs/specs/completed"))?;
+        }
 
         // Reference docs
         let sdd_config = ctx.config.modules.sdd.as_ref();

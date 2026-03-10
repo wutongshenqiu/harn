@@ -2,7 +2,7 @@ Orchestrate a long-running multi-spec plan. Argument $ARGUMENTS: `[create "title
 
 ## Overview
 
-This command manages execution of multi-spec plans that span multiple context windows. It uses `.claude/current-plan.md` as persistent state and delegates each spec to the `spec-implementer` subagent.
+This command manages execution of multi-spec plans that span multiple context windows. It uses `.claude/current-plan.md` as persistent state and implements each spec sequentially.
 
 ## Subcommands
 
@@ -34,8 +34,8 @@ This command manages execution of multi-spec plans that span multiple context wi
 
 1. Read `.claude/current-plan.md`
 2. Find the first unchecked spec
-3. Delegate to `spec-implementer` subagent: "Implement [SPEC-NNN]"
-4. When subagent returns, parse its summary
+3. Implement the spec: follow the spec's requirements and acceptance criteria
+4. After implementation, verify with `make check`
 5. Update `.claude/current-plan.md`:
    - Mark spec as `[x]`
    - Append to Progress Log: timestamp, spec id, status, files modified, commits
@@ -55,9 +55,8 @@ Same as `next` — reads current-plan.md and continues from where it left off.
 - One spec at a time — do not parallelize spec implementation
 - After each spec, verify the build still passes: `make check`
 
-## Worktree vs Direct Implementation
+## Implementation Notes
 
-- **Use worktree isolation** (default) when specs touch independent files — maximizes parallelism and safety
-- **Skip worktree isolation** when consecutive specs modify the same source files (e.g., multiple languages all adding match arms to the same `.rs` files) — avoids merge conflicts
-- To skip worktree: implement directly in the main working tree instead of delegating to `spec-implementer` with `isolation: "worktree"`
-- Signs you should skip worktree: specs that all touch `git.rs`, `quality.rs`, `agent.rs`, or other shared modules
+- Implement each spec directly in the main working tree
+- One spec at a time — complete and verify before moving to the next
+- If consecutive specs modify the same files, take extra care with ordering

@@ -28,8 +28,11 @@ static TEMPLATE_ENV: LazyLock<Environment<'static>> = LazyLock::new(|| {
 
 /// Template rendering engine backed by minijinja + embedded templates.
 ///
-/// Cheap to construct — all state lives in a global `LazyLock`.
-pub struct TemplateEngine;
+/// When `dry_run` is true, templates are rendered (to validate them) but
+/// files are not written to disk.
+pub struct TemplateEngine {
+    dry_run: bool,
+}
 
 impl Default for TemplateEngine {
     fn default() -> Self {
@@ -42,7 +45,14 @@ impl TemplateEngine {
     pub fn new() -> Self {
         // Force initialization on first use
         LazyLock::force(&TEMPLATE_ENV);
-        Self
+        Self { dry_run: false }
+    }
+
+    /// Create an engine in dry-run mode (no file writes).
+    #[must_use]
+    pub fn with_dry_run(dry_run: bool) -> Self {
+        LazyLock::force(&TEMPLATE_ENV);
+        Self { dry_run }
     }
 
     /// Render a template with the given variables and write to the output path.
@@ -68,10 +78,12 @@ impl TemplateEngine {
             .render(minijinja::context! { ..minijinja::Value::from_serialize(vars) })
             .with_context(|| format!("Failed to render: {template_path}"))?;
 
-        if let Some(parent) = output_path.parent() {
-            fs::create_dir_all(parent)?;
+        if !self.dry_run {
+            if let Some(parent) = output_path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(output_path, rendered)?;
         }
-        fs::write(output_path, rendered)?;
 
         Ok(true)
     }
@@ -86,10 +98,12 @@ impl TemplateEngine {
             .get_file(template_path)
             .with_context(|| format!("Template file not found: {template_path}"))?;
 
-        if let Some(parent) = output_path.parent() {
-            fs::create_dir_all(parent)?;
+        if !self.dry_run {
+            if let Some(parent) = output_path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::write(output_path, file.contents())?;
         }
-        fs::write(output_path, file.contents())?;
 
         Ok(true)
     }
@@ -129,6 +143,22 @@ impl TemplateEngine {
         vars.insert("frameworks".into(), ctx.config.stacks.frameworks.join(", "));
         vars.insert("year".into(), harn_core::date::year());
         vars.insert("today".into(), harn_core::date::today());
+
+        // Build tool
+        let build_tool = ctx
+            .config
+            .modules
+            .build
+            .as_ref()
+            .map_or("make", |b| b.tool.as_str())
+            .to_string();
+        vars.insert("build_tool".into(), build_tool);
+
+        // CI provider
+        if let Some(ci) = &ctx.config.modules.ci {
+            vars.insert("ci_provider".into(), ci.provider.clone());
+        }
+
         vars
     }
 }

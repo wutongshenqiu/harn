@@ -2,9 +2,18 @@
 
 ## Rules
 
-- Always run `make lint` before committing
-- Always run `make test` before committing
-- Use conventional commit messages
-- Check `docs/reference/types/` before creating new types
-- Update reference docs when changing APIs/types/schema
-- No hardcoded secrets
+- Always run `{{ build_tool }} lint` before committing
+- Always run `{{ build_tool }} test` before committing
+- Use conventional commit messages: feat:, fix:, docs:, refactor:, test:, chore:
+- No hardcoded secrets — use environment variables
+- Follow SDD methodology: specs in `docs/specs/`, playbooks in `docs/playbooks/`
+{% if project_type == "api" or project_type == "service" %}
+- Check `docs/reference/types/` for existing type definitions before creating new ones
+- Update reference docs when changing APIs, types, or database schema
+{% endif %}
+
+## Tool Usage
+
+- Read files before editing — understand existing code first
+- Use `{{ build_tool }} check` to verify changes (lint + test)
+- Prefer editing existing files over creating new ones

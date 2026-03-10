@@ -88,7 +88,7 @@ project/
 | `agent` | AI coding agent configs | claude, cursor, windsurf, cline, opencode, qoder |
 | `build` | Build orchestration | make, just, task |
 | `ide` | Editor configuration | vscode, zed (jetbrains, vim planned) |
-| `git` | Git config | .gitignore (language-aware) |
+| `git` | Git config | .gitignore (language-aware), .gitattributes |
 | `docker` | Containerization | Dockerfile, Compose |
 | `env` | Environment management | .env.example |
 | `quality` | Code quality tooling | EditorConfig, linters |
@@ -127,6 +127,10 @@ editors = ["vscode"]
 
 [modules.git]
 gitignore = true
+gitattributes = true
+
+[modules.env]
+extra_vars = ["API_KEY", "STRIPE_SECRET"]
 
 [modules.quality]
 editorconfig = true
@@ -164,9 +168,11 @@ harn implements **Harness Engineering** — treating developer infrastructure as
 ```
 harn init [dir]              Initialize a new project (interactive)
 harn init [dir] -c harn.toml Config-driven init (non-interactive)
+harn init [dir] --dry-run    Preview what would be created
 harn add <module> [dir]      Add a module to existing project
+harn add <module> --dry-run  Preview module output
 harn spec [title] -d [dir]   Create a new Spec
-harn doctor [dir]            Diagnose SDD project health
+harn doctor [dir]            Diagnose project health (SDD + all modules)
 harn modules                 List available modules
 harn example                 Generate example harn.toml
 harn issue                   Submit an issue to harn project

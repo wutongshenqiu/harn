@@ -4,8 +4,7 @@ Steps:
 
 1. **Parse arguments**: Extract flags and commit message from `$ARGUMENTS`
 2. **Existing PR check**: `gh pr list --head <branch> --state open`
-3. **Commands sync check**: Diff `.claude/commands/` vs `templates/agent/commands/` — warn if any drift detected
-4. **Format + Lint**: `make fmt && make lint` — fix issues until pass
+3. **Format + Lint**: `make fmt && make lint` — fix issues until pass
 4. **Test**: `make test` — fix failures until pass
 5. **Doc sync check**: If API/types/schema changed, verify reference docs updated
 6. **Spec check**: If changes complete an Active Spec, advance to Completed

@@ -29,6 +29,9 @@ make run          # run with args (make run ARGS="init .")
 make help         # show all targets (default)
 
 harn issue        # submit an issue to the harn repo (interactive)
+harn doctor       # diagnose project health (SDD + all modules)
+harn init --dry-run  # preview without writing files
+harn add --dry-run   # preview module output
 ```
 
 ## Slash Commands
