@@ -2,11 +2,21 @@
 
 ## Rules
 
-- Always run `make lint` before committing
-- Always run `make test` before committing
+- Always run `{{ build_tool }} lint` before committing
+- Always run `{{ build_tool }} test` before committing
 - Use conventional commit messages: feat:, fix:, docs:, refactor:, test:, chore:
+- No hardcoded secrets — use environment variables
+- Follow SDD methodology: specs in `docs/specs/`, playbooks in `docs/playbooks/`
+{% if project_type == "api" or project_type == "service" %}
 - Check `docs/reference/types/` for existing type definitions before creating new ones
 - Update reference docs when changing APIs, types, or database schema
-- Follow SDD methodology: specs in `docs/specs/`, reference in `docs/reference/`
-- No hardcoded secrets — use environment variables
 - All API responses use standard envelope format
+{% endif %}
+
+## File References
+
+@CLAUDE.md — Full project rules and commands
+@docs/specs/_index.md — Spec registry
+{% if project_type == "api" or project_type == "service" %}
+@docs/reference/ — SSOT type definitions and API conventions
+{% endif %}

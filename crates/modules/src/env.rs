@@ -20,10 +20,21 @@ impl Module for EnvModule {
     }
 
     fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
-        let engine = TemplateEngine::new();
-        let vars = TemplateEngine::vars_from_context(ctx);
+        let engine = TemplateEngine::with_dry_run(ctx.dry_run);
+        let mut vars = TemplateEngine::vars_from_context(ctx);
         let force = ctx.force;
         let mut created = Vec::new();
+
+        let env_config = ctx.config.modules.env.clone().unwrap_or_default();
+
+        // Pass extra_vars as a newline-separated string for template rendering
+        let extra = env_config
+            .extra_vars
+            .iter()
+            .map(|v| format!("# {v}="))
+            .collect::<Vec<_>>()
+            .join("\n");
+        vars.insert("extra_vars".into(), extra);
 
         let src = "env/env.example";
         if engine.has_template(src) {

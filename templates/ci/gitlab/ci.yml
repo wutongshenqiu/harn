@@ -1,3 +1,19 @@
+{% if primary_language == "rust" %}
+image: rust:latest
+{% elif primary_language == "go" %}
+image: golang:latest
+{% elif primary_language == "typescript" or primary_language == "javascript" %}
+image: node:lts
+{% elif primary_language == "python" %}
+image: python:3
+{% elif primary_language == "java" %}
+image: eclipse-temurin:21
+{% elif primary_language == "dart" %}
+image: dart:stable
+{% else %}
+image: ubuntu:latest
+{% endif %}
+
 stages:
   - lint
   - test

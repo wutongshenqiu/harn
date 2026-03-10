@@ -15,6 +15,9 @@ pub struct ProjectContext {
     /// Whether to overwrite existing files
     pub force: bool,
 
+    /// Preview mode — list files without writing
+    pub dry_run: bool,
+
     /// Files that were created or modified during this run
     pub created_files: Vec<PathBuf>,
 }
@@ -25,6 +28,7 @@ impl ProjectContext {
             root,
             config,
             force: false,
+            dry_run: false,
             created_files: Vec::new(),
         }
     }
@@ -56,5 +60,22 @@ impl ProjectContext {
     /// Record a file as created.
     pub fn record_created(&mut self, path: &Path) {
         self.created_files.push(path.to_path_buf());
+    }
+
+    /// Write content to a file, respecting force and `dry_run`.
+    ///
+    /// Returns `true` if the file was (or would be) created/updated.
+    pub fn write_file(&self, path: &Path, content: &str) -> std::io::Result<bool> {
+        if path.exists() && !self.force {
+            return Ok(false);
+        }
+        if self.dry_run {
+            return Ok(true);
+        }
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(path, content)?;
+        Ok(true)
     }
 }

@@ -40,6 +40,10 @@ enum Commands {
         /// Overwrite existing files
         #[arg(short, long)]
         force: bool,
+
+        /// Preview what would be created without writing files
+        #[arg(long)]
+        dry_run: bool,
     },
 
     /// Add a module to an existing project
@@ -54,6 +58,10 @@ enum Commands {
         /// Overwrite existing files
         #[arg(short, long)]
         force: bool,
+
+        /// Preview what would be created without writing files
+        #[arg(long)]
+        dry_run: bool,
     },
 
     /// Create a new Spec
@@ -99,12 +107,14 @@ fn main() -> Result<()> {
             directory,
             config,
             force,
-        } => cmd_init(directory, config, force),
+            dry_run,
+        } => cmd_init(directory, config, force, dry_run),
         Commands::Add {
             module,
             directory,
             force,
-        } => cmd_add(&module, directory, force),
+            dry_run,
+        } => cmd_add(&module, directory, force, dry_run),
         Commands::Spec { title, directory } => cmd_spec(title, directory),
         Commands::Doctor { directory, fix } => cmd_doctor(directory, fix),
         Commands::Modules => {
@@ -116,7 +126,12 @@ fn main() -> Result<()> {
     }
 }
 
-fn cmd_init(directory: PathBuf, config_path: Option<PathBuf>, force: bool) -> Result<()> {
+fn cmd_init(
+    directory: PathBuf,
+    config_path: Option<PathBuf>,
+    force: bool,
+    dry_run: bool,
+) -> Result<()> {
     println!(
         "{} v{VERSION} — Project Harness with SDD",
         style("harn").cyan().bold()
@@ -139,7 +154,9 @@ fn cmd_init(directory: PathBuf, config_path: Option<PathBuf>, force: bool) -> Re
     };
 
     // Save config for reproducibility
-    config.save(&root.join("harn.toml"))?;
+    if !dry_run {
+        config.save(&root.join("harn.toml"))?;
+    }
 
     // Show summary
     println!();
@@ -160,7 +177,26 @@ fn cmd_init(directory: PathBuf, config_path: Option<PathBuf>, force: bool) -> Re
     // Execute modules
     let mut ctx = ProjectContext::new(root, config);
     ctx.force = force;
+    ctx.dry_run = dry_run;
+
+    if dry_run {
+        println!(
+            "{}",
+            style("Dry-run mode — no files will be written").yellow()
+        );
+        println!();
+    }
+
     run_enabled_modules(&mut ctx)?;
+
+    if dry_run {
+        println!();
+        println!(
+            "{}",
+            style("Dry-run complete. Re-run without --dry-run to apply.").yellow()
+        );
+        return Ok(());
+    }
 
     println!();
     println!("{}", style("Setup complete!").green().bold());
@@ -184,7 +220,7 @@ fn cmd_init(directory: PathBuf, config_path: Option<PathBuf>, force: bool) -> Re
     Ok(())
 }
 
-fn cmd_add(module_id: &str, directory: PathBuf, force: bool) -> Result<()> {
+fn cmd_add(module_id: &str, directory: PathBuf, force: bool, dry_run: bool) -> Result<()> {
     let root = if directory.is_absolute() {
         directory
     } else {
@@ -207,6 +243,15 @@ fn cmd_add(module_id: &str, directory: PathBuf, force: bool) -> Result<()> {
 
     let mut ctx = ProjectContext::new(root, config);
     ctx.force = force;
+    ctx.dry_run = dry_run;
+
+    if dry_run {
+        println!(
+            "{}",
+            style("Dry-run mode — no files will be written").yellow()
+        );
+        println!();
+    }
 
     let registry = ModuleRegistry::new();
     if let Some(module) = registry.get(module_id) {
@@ -216,7 +261,7 @@ fn cmd_add(module_id: &str, directory: PathBuf, force: bool) -> Result<()> {
             style(format!("({module_id})")).dim()
         );
         let files = module.generate(&mut ctx)?;
-        print_created_files(&files);
+        print_created_files(&files, dry_run);
     } else {
         eprintln!(
             "{} Unknown module: {}",
@@ -322,20 +367,42 @@ fn cmd_doctor(directory: PathBuf, fix: bool) -> Result<()> {
     };
     let root = root.canonicalize()?;
 
-    if !root.join("docs/specs").exists() {
+    let mut result = harn_core::doctor::CheckResult::default();
+    let has_sdd = root.join("docs/specs").exists();
+    let config_path = root.join("harn.toml");
+    let config = if config_path.exists() {
+        HarnConfig::load(&config_path).ok()
+    } else {
+        None
+    };
+
+    if !has_sdd && config.is_none() {
         eprintln!(
-            "{} No SDD structure found. Run `harn add sdd` first.",
+            "{} No harn project found. Run `harn init` first.",
             style("Error:").red().bold()
         );
         std::process::exit(1);
     }
 
-    println!(
-        "{} SDD project health...\n",
-        style("Checking").blue().bold()
-    );
+    println!("{} project health...\n", style("Checking").blue().bold());
 
-    let result = harn_modules::sdd_checks::run_all_checks(&root);
+    // SDD checks (if SDD structure exists)
+    if has_sdd {
+        println!("{}", style("=== SDD Checks ===").bold().underlined());
+        println!();
+        result.merge(harn_modules::sdd_checks::run_all_checks(&root));
+        println!();
+    }
+
+    // Project-wide checks (if harn.toml exists)
+    if let Some(cfg) = &config {
+        println!("{}", style("=== Module Checks ===").bold().underlined());
+        println!();
+        result.merge(harn_modules::project_checks::run_all_project_checks(
+            &root, cfg,
+        ));
+        println!();
+    }
 
     if fix && result.has_fixable() {
         println!();
@@ -349,7 +416,16 @@ fn cmd_doctor(directory: PathBuf, fix: bool) -> Result<()> {
         println!();
         println!("{}", style("Re-checking...").blue().bold());
         println!();
-        let recheck = harn_modules::sdd_checks::run_all_checks(&root);
+
+        let mut recheck = harn_core::doctor::CheckResult::default();
+        if has_sdd {
+            recheck.merge(harn_modules::sdd_checks::run_all_checks(&root));
+        }
+        if let Some(cfg) = &config {
+            recheck.merge(harn_modules::project_checks::run_all_project_checks(
+                &root, cfg,
+            ));
+        }
         harn_core::doctor::print_summary(&recheck);
         std::process::exit(recheck.exit_code());
     }
@@ -526,16 +602,21 @@ fn run_enabled_modules(ctx: &mut ProjectContext) -> Result<()> {
                 style(module.name()).bold()
             );
             let files = module.generate(ctx)?;
-            print_created_files(&files);
+            print_created_files(&files, ctx.dry_run);
         }
     }
 
     Ok(())
 }
 
-fn print_created_files(files: &[String]) {
+fn print_created_files(files: &[String], dry_run: bool) {
+    let prefix = if dry_run {
+        style("WOULD CREATE").yellow()
+    } else {
+        style("OK").green()
+    };
     for file in files {
-        println!("  {} {}", style("OK").green(), file);
+        println!("  {prefix} {file}");
     }
 }
 

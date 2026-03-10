@@ -1,6 +1,6 @@
 Sync commands across tools. Argument $ARGUMENTS: `[command-name | all]`
 
-SSOT: `.claude/commands/` -> `.agents/skills/`, `.opencode/commands/`
+SSOT: `.claude/commands/` -> `.cursor/rules/`, `.qoder/rules/`, `.opencode/commands/`
 
 Steps:
 1. Determine scope from `$ARGUMENTS`

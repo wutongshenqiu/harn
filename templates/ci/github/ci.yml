@@ -12,6 +12,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+{% if primary_language == "rust" %}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+{% elif primary_language == "go" %}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+{% elif primary_language == "typescript" or primary_language == "javascript" %}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+{% elif primary_language == "python" %}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+{% elif primary_language == "java" %}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+{% elif primary_language == "dart" %}
+      - uses: dart-lang/setup-dart@v1
+{% endif %}
       - name: Lint
         run: make lint
 
@@ -20,6 +44,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+{% if primary_language == "rust" %}
+      - uses: dtolnay/rust-toolchain@stable
+{% elif primary_language == "go" %}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+{% elif primary_language == "typescript" or primary_language == "javascript" %}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+{% elif primary_language == "python" %}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+{% elif primary_language == "java" %}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+{% elif primary_language == "dart" %}
+      - uses: dart-lang/setup-dart@v1
+{% endif %}
       - name: Test
         run: make test
 

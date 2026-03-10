@@ -20,7 +20,7 @@ impl Module for DockerModule {
     }
 
     fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
-        let engine = TemplateEngine::new();
+        let engine = TemplateEngine::with_dry_run(ctx.dry_run);
         let mut vars = TemplateEngine::vars_from_context(ctx);
         let force = ctx.force;
         let mut created = Vec::new();

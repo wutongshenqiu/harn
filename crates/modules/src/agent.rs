@@ -30,7 +30,7 @@ impl Module for AgentModule {
     }
 
     fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
-        let engine = TemplateEngine::new();
+        let engine = TemplateEngine::with_dry_run(ctx.dry_run);
         let mut vars = TemplateEngine::vars_from_context(ctx);
         let force = ctx.force;
         let mut created = Vec::new();
@@ -93,11 +93,7 @@ impl AgentModule {
         // settings.json — build dynamically based on stacks
         let settings = self.build_claude_settings(ctx);
         let dst = ctx.path(".claude/settings.json");
-        if !dst.exists() || force {
-            if let Some(parent) = dst.parent() {
-                std::fs::create_dir_all(parent)?;
-            }
-            std::fs::write(&dst, settings)?;
+        if ctx.write_file(&dst, &settings)? {
             created.push(".claude/settings.json".into());
         }
 
@@ -229,6 +225,18 @@ impl AgentModule {
         rows.join("\n")
     }
 
+    fn detect_package_manager(ctx: &ProjectContext) -> &'static str {
+        if ctx.path("bun.lockb").exists() || ctx.path("bun.lock").exists() {
+            "bun"
+        } else if ctx.path("pnpm-lock.yaml").exists() {
+            "pnpm"
+        } else if ctx.path("yarn.lock").exists() {
+            "yarn"
+        } else {
+            "npm"
+        }
+    }
+
     fn build_claude_settings(&self, ctx: &ProjectContext) -> String {
         let mut perms = vec![
             "Bash(make:*)".to_string(),
@@ -249,9 +257,14 @@ impl AgentModule {
                     perms.push("Bash(go:*)".into());
                 }
                 "typescript" | "javascript" => {
-                    let pkg = "npm"; // TODO: detect from config
+                    let pkg = Self::detect_package_manager(ctx);
                     perms.push(format!("Bash({pkg}:*)"));
-                    perms.push("Bash(npx:*)".into());
+                    match pkg {
+                        "pnpm" => perms.push("Bash(pnpx:*)".into()),
+                        "bun" => perms.push("Bash(bunx:*)".into()),
+                        "yarn" => {}
+                        _ => perms.push("Bash(npx:*)".into()),
+                    }
                     perms.push("Bash(node:*)".into());
                 }
                 "dart" | "flutter" => {

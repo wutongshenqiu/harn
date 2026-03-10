@@ -5,6 +5,7 @@ pub mod docker;
 pub mod env;
 pub mod git;
 pub mod ide;
+pub mod project_checks;
 pub mod quality;
 pub mod registry;
 pub mod sdd;
