@@ -159,7 +159,7 @@ harn implements **Harness Engineering** — treating developer infrastructure as
 1. **Convention over Configuration** — sensible defaults, escape hatches via `harn.toml`
 2. **Spec-Driven Development** — define features as Specs (PRD + TD), track lifecycle
 3. **AI-Agent-First** — CLAUDE.md + slash commands for AI-assisted workflows
-4. **Quality Gates** — pre-commit hooks enforce `make lint && make test`
+4. **Quality Gates** — optional pre-commit hooks enforce `make lint && make test` (`pre_commit_hook = true`)
 5. **SSOT Documentation** — reference docs as single source of truth
 6. **Reproducible** — `harn.toml` captures all decisions for team sharing
 
@@ -168,14 +168,20 @@ harn implements **Harness Engineering** — treating developer infrastructure as
 ```
 harn init [dir]              Initialize a new project (interactive)
 harn init [dir] -c harn.toml Config-driven init (non-interactive)
-harn init [dir] --dry-run    Preview what would be created
+harn init [dir] --dry-run    Preview (shows CREATE/FORCE/SKIP per file)
+harn init [dir] --force      Overwrite existing files (backs up to .harn-backup/)
 harn add <module> [dir]      Add a module to existing project
 harn add <module> --dry-run  Preview module output
+harn add <module> --force    Overwrite (backs up to .harn-backup/)
 harn spec [title] -d [dir]   Create a new Spec
 harn doctor [dir]            Diagnose project health (SDD + all modules)
+harn doctor [dir] --fix      Auto-fix safe issues
 harn modules                 List available modules
 harn example                 Generate example harn.toml
-harn issue                   Submit an issue to harn project
+harn issue                   Submit an issue (interactive)
+harn issue --type bug --title "..." --body "..."
+                             Non-interactive issue creation
+harn issue --open            Open browser to new issue page
 ```
 
 ## Contributing

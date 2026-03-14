@@ -12,12 +12,12 @@ All specifications for harn.
 | SPEC-004 | Add C/C++ Language Support                      | Completed | completed/SPEC-004/             |
 | SPEC-005 | Add Docker Templates for All Languages          | Completed | completed/SPEC-005/             |
 | SPEC-006 | SDD Project Diagnostics and Upgrade (harn doctor) | Completed | completed/SPEC-006/             |
+| SPEC-007 | Fix write pipeline, non-interactive issue, and doctor depth | Completed | completed/SPEC-007/             |
 
 ## Active
 
 | ID       | Title                                          | Status    | Location                        |
 |----------|------------------------------------------------|-----------|---------------------------------|
-| SPEC-007 | Fix write pipeline, non-interactive issue, and doctor depth | Completed | [completed/SPEC-007/](completed/SPEC-007/) |
 
 ## How to Create a New Spec
 

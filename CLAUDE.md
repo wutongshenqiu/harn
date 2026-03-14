@@ -28,10 +28,15 @@ make install      # install to cargo bin
 make run          # run with args (make run ARGS="init .")
 make help         # show all targets (default)
 
-harn issue        # submit an issue to the harn repo (interactive)
+harn issue        # submit an issue (interactive)
+harn issue --type bug --title "..." --body "..."  # non-interactive
+harn issue --open # open browser to new issue page
 harn doctor       # diagnose project health (SDD + all modules)
-harn init --dry-run  # preview without writing files
-harn add --dry-run   # preview module output
+harn doctor --fix # auto-fix safe issues
+harn init --dry-run   # preview (shows CREATE/FORCE/SKIP per file)
+harn init --force     # overwrite existing files (backs up to .harn-backup/)
+harn add --dry-run    # preview module output
+harn add --force      # overwrite (backs up to .harn-backup/)
 ```
 
 ## Slash Commands
