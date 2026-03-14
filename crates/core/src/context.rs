@@ -1,6 +1,26 @@
 use crate::config::HarnConfig;
 use std::path::{Path, PathBuf};
 
+/// Result of a file write operation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WriteStatus {
+    Created,
+    Overwritten,
+    Skipped,
+    WouldCreate,
+    WouldOverwrite,
+}
+
+impl WriteStatus {
+    /// Whether the file was (or would be) written.
+    pub fn is_written(self) -> bool {
+        matches!(
+            self,
+            Self::Created | Self::Overwritten | Self::WouldCreate | Self::WouldOverwrite
+        )
+    }
+}
+
 /// Runtime context for module execution.
 ///
 /// Provides access to the project directory, config, and utility methods.
@@ -62,20 +82,50 @@ impl ProjectContext {
         self.created_files.push(path.to_path_buf());
     }
 
+    /// Backup directory path: `<root>/.harn-backup/`
+    fn backup_dir(&self) -> PathBuf {
+        self.root.join(".harn-backup")
+    }
+
+    /// Copy an existing file into `.harn-backup/` before overwriting.
+    fn backup_file(&self, path: &Path) -> std::io::Result<()> {
+        let relative = path.strip_prefix(&self.root).unwrap_or(path);
+        let backup_path = self.backup_dir().join(relative);
+        if let Some(parent) = backup_path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::copy(path, backup_path)?;
+        Ok(())
+    }
+
     /// Write content to a file, respecting force and `dry_run`.
     ///
-    /// Returns `true` if the file was (or would be) created/updated.
-    pub fn write_file(&self, path: &Path, content: &str) -> std::io::Result<bool> {
-        if path.exists() && !self.force {
-            return Ok(false);
+    /// When `force` is set and the file exists, it is backed up to
+    /// `.harn-backup/` before being overwritten.
+    pub fn write_file(&self, path: &Path, content: &str) -> std::io::Result<WriteStatus> {
+        let exists = path.exists();
+
+        if exists && !self.force {
+            return Ok(WriteStatus::Skipped);
         }
         if self.dry_run {
-            return Ok(true);
+            return Ok(if exists {
+                WriteStatus::WouldOverwrite
+            } else {
+                WriteStatus::WouldCreate
+            });
+        }
+        if exists {
+            self.backup_file(path)?;
         }
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent)?;
         }
         std::fs::write(path, content)?;
-        Ok(true)
+        Ok(if exists {
+            WriteStatus::Overwritten
+        } else {
+            WriteStatus::Created
+        })
     }
 }

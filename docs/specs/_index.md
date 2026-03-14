@@ -17,6 +17,7 @@ All specifications for harn.
 
 | ID       | Title                                          | Status    | Location                        |
 |----------|------------------------------------------------|-----------|---------------------------------|
+| SPEC-007 | Fix write pipeline, non-interactive issue, and doctor depth | Completed | [completed/SPEC-007/](completed/SPEC-007/) |
 
 ## How to Create a New Spec
 

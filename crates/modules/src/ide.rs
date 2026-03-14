@@ -1,5 +1,5 @@
 use anyhow::Result;
-use harn_core::context::ProjectContext;
+use harn_core::context::{ProjectContext, WriteStatus};
 use harn_core::module::{Module, ModuleId};
 use harn_templates::TemplateEngine;
 
@@ -25,27 +25,26 @@ impl Module for IdeModule {
         "Editor configs (VS Code, Zed; JetBrains, Vim planned)"
     }
 
-    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
-        let engine = TemplateEngine::with_dry_run(ctx.dry_run);
+    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<(String, WriteStatus)>> {
+        let engine = TemplateEngine::from_context(ctx);
         let vars = TemplateEngine::vars_from_context(ctx);
         let force = ctx.force;
-        let mut created = Vec::new();
+        let mut files = Vec::new();
 
         let ide_config = ctx.config.modules.ide.clone().unwrap_or_default();
 
         for editor in &ide_config.editors {
             match editor.as_str() {
                 "vscode" => {
-                    let files = [
+                    let entries = [
                         ("ide/vscode/settings.json", ".vscode/settings.json"),
                         ("ide/vscode/extensions.json", ".vscode/extensions.json"),
                     ];
-                    for (src, dst_rel) in &files {
+                    for (src, dst_rel) in &entries {
                         if engine.has_template(src) {
                             let dst = ctx.path(dst_rel);
-                            if engine.render_to(src, &vars, &dst, force)? {
-                                created.push(dst_rel.to_string());
-                            }
+                            let status = engine.render_to(src, &vars, &dst, force)?;
+                            files.push((dst_rel.to_string(), status));
                         }
                     }
                 }
@@ -53,9 +52,8 @@ impl Module for IdeModule {
                     let src = "ide/zed/settings.json";
                     if engine.has_template(src) {
                         let dst = ctx.path(".zed/settings.json");
-                        if engine.render_to(src, &vars, &dst, force)? {
-                            created.push(".zed/settings.json".into());
-                        }
+                        let status = engine.render_to(src, &vars, &dst, force)?;
+                        files.push((".zed/settings.json".into(), status));
                     }
                 }
                 other => {
@@ -68,6 +66,6 @@ impl Module for IdeModule {
             }
         }
 
-        Ok(created)
+        Ok(files)
     }
 }

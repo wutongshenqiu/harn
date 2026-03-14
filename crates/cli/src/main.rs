@@ -3,8 +3,10 @@ mod interactive;
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use console::style;
+use harn_core::context::WriteStatus;
 use harn_core::{HarnConfig, ProjectContext, url_encode};
 use harn_modules::ModuleRegistry;
+use std::io::IsTerminal;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -96,7 +98,23 @@ enum Commands {
     },
 
     /// Submit an issue to the harn project
-    Issue,
+    Issue {
+        /// Issue type: bug, feature, question
+        #[arg(long, value_parser = ["bug", "feature", "question"])]
+        r#type: Option<String>,
+
+        /// Issue title
+        #[arg(long)]
+        title: Option<String>,
+
+        /// Issue body / description
+        #[arg(long)]
+        body: Option<String>,
+
+        /// Open browser to new issue page instead of creating via gh CLI
+        #[arg(long)]
+        open: bool,
+    },
 }
 
 fn main() -> Result<()> {
@@ -122,7 +140,12 @@ fn main() -> Result<()> {
             Ok(())
         }
         Commands::Example { output } => cmd_example(output),
-        Commands::Issue => cmd_issue(),
+        Commands::Issue {
+            r#type,
+            title,
+            body,
+            open,
+        } => cmd_issue(r#type, title, body, open),
     }
 }
 
@@ -261,7 +284,7 @@ fn cmd_add(module_id: &str, directory: PathBuf, force: bool, dry_run: bool) -> R
             style(format!("({module_id})")).dim()
         );
         let files = module.generate(&mut ctx)?;
-        print_created_files(&files, dry_run);
+        print_file_ops(&files);
     } else {
         eprintln!(
             "{} Unknown module: {}",
@@ -458,29 +481,57 @@ fn cmd_example(output: PathBuf) -> Result<()> {
     Ok(())
 }
 
-fn cmd_issue() -> Result<()> {
+fn cmd_issue(
+    issue_type: Option<String>,
+    title: Option<String>,
+    body: Option<String>,
+    open: bool,
+) -> Result<()> {
     println!(
         "{} v{VERSION} — Submit an Issue",
         style("harn").cyan().bold()
     );
     println!();
 
+    // Resolve issue type: flag → interactive
     let type_options = &["Bug Report", "Feature Request", "Question"];
-    let type_idx = dialoguer::FuzzySelect::new()
-        .with_prompt("Issue type")
-        .items(type_options)
-        .default(0)
-        .interact()?;
-    let issue_type = type_options[type_idx];
+    let type_labels = &["bug", "feature", "question"];
+    let type_idx = if let Some(ref t) = issue_type {
+        type_labels
+            .iter()
+            .position(|l| l == t)
+            .expect("clap validates value_parser")
+    } else {
+        dialoguer::FuzzySelect::new()
+            .with_prompt("Issue type")
+            .items(type_options)
+            .default(0)
+            .interact()?
+    };
+    let issue_type_display = type_options[type_idx];
 
-    let title: String = dialoguer::Input::new()
-        .with_prompt("Title")
-        .interact_text()?;
+    // Resolve title: flag → interactive
+    let title = if let Some(t) = title {
+        t
+    } else {
+        dialoguer::Input::new()
+            .with_prompt("Title")
+            .interact_text()?
+    };
 
-    let description: String = dialoguer::Input::new()
-        .with_prompt("Description (optional)")
-        .allow_empty(true)
-        .interact_text()?;
+    // Resolve body: flag → stdin → interactive
+    let description = if let Some(b) = body {
+        b
+    } else if !std::io::stdin().is_terminal() {
+        let mut buf = String::new();
+        std::io::Read::read_to_string(&mut std::io::stdin(), &mut buf)?;
+        buf
+    } else {
+        dialoguer::Input::new()
+            .with_prompt("Description (optional)")
+            .allow_empty(true)
+            .interact_text()?
+    };
 
     let label = match type_idx {
         0 => "bug",
@@ -498,8 +549,24 @@ fn cmd_issue() -> Result<()> {
 
     let config_summary = load_config_summary().unwrap_or_default();
 
-    let body =
-        format!("## {issue_type}\n\n{description}\n\n## Environment\n\n{env_info}{config_summary}");
+    let full_body = format!(
+        "## {issue_type_display}\n\n{description}\n\n## Environment\n\n{env_info}{config_summary}"
+    );
+
+    // --open: just open browser with pre-filled URL
+    if open {
+        return open_issue_in_browser(&title, &full_body, label).or_else(|_| {
+            let url = format!(
+                "https://github.com/wutongshenqiu/harn/issues/new?title={}&body={}&labels={}",
+                url_encode(&title),
+                url_encode(&full_body),
+                url_encode(label),
+            );
+            println!("Open this URL to submit your issue:\n");
+            println!("  {url}");
+            Ok(())
+        });
+    }
 
     println!();
 
@@ -513,7 +580,7 @@ fn cmd_issue() -> Result<()> {
             "--title",
             &title,
             "--body",
-            &body,
+            &full_body,
             "--label",
             label,
         ])
@@ -530,12 +597,12 @@ fn cmd_issue() -> Result<()> {
         }
         _ => {
             // Fallback: open in browser
-            if open_issue_in_browser(&title, &body, label).is_err() {
+            if open_issue_in_browser(&title, &full_body, label).is_err() {
                 // Final fallback: print URL
                 let url = format!(
                     "https://github.com/wutongshenqiu/harn/issues/new?title={}&body={}&labels={}",
                     url_encode(&title),
-                    url_encode(&body),
+                    url_encode(&full_body),
                     url_encode(label),
                 );
                 println!("Open this URL to submit your issue:\n");
@@ -602,21 +669,22 @@ fn run_enabled_modules(ctx: &mut ProjectContext) -> Result<()> {
                 style(module.name()).bold()
             );
             let files = module.generate(ctx)?;
-            print_created_files(&files, ctx.dry_run);
+            print_file_ops(&files);
         }
     }
 
     Ok(())
 }
 
-fn print_created_files(files: &[String], dry_run: bool) {
-    let prefix = if dry_run {
-        style("WOULD CREATE").yellow()
-    } else {
-        style("OK").green()
-    };
-    for file in files {
-        println!("  {prefix} {file}");
+fn print_file_ops(files: &[(String, WriteStatus)]) {
+    for (path, status) in files {
+        let label = match status {
+            WriteStatus::Created | WriteStatus::WouldCreate => style("  CREATE").green(),
+            WriteStatus::Overwritten => style("   FORCE").magenta(),
+            WriteStatus::Skipped => style("    SKIP").dim(),
+            WriteStatus::WouldOverwrite => style("   FORCE").yellow(),
+        };
+        println!("  {label} {path}");
     }
 }
 

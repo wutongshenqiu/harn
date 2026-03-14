@@ -6,6 +6,6 @@ pub mod module;
 pub mod url;
 
 pub use config::HarnConfig;
-pub use context::ProjectContext;
+pub use context::{ProjectContext, WriteStatus};
 pub use module::{Module, ModuleId};
 pub use url::url_encode;

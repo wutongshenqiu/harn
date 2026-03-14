@@ -1,5 +1,5 @@
 use anyhow::Result;
-use harn_core::context::ProjectContext;
+use harn_core::context::{ProjectContext, WriteStatus};
 use harn_core::module::{Module, ModuleId};
 use harn_templates::TemplateEngine;
 
@@ -21,11 +21,11 @@ impl Module for QualityModule {
         "EditorConfig, linter configs"
     }
 
-    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
-        let engine = TemplateEngine::with_dry_run(ctx.dry_run);
+    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<(String, WriteStatus)>> {
+        let engine = TemplateEngine::from_context(ctx);
         let vars = TemplateEngine::vars_from_context(ctx);
         let force = ctx.force;
-        let mut created = Vec::new();
+        let mut files = Vec::new();
 
         let quality_config = ctx.config.modules.quality.clone().unwrap_or_default();
 
@@ -33,9 +33,8 @@ impl Module for QualityModule {
             let src = "quality/editorconfig";
             if engine.has_template(src) {
                 let dst = ctx.path(".editorconfig");
-                if engine.render_to(src, &vars, &dst, force)? {
-                    created.push(".editorconfig".into());
-                }
+                let status = engine.render_to(src, &vars, &dst, force)?;
+                files.push((".editorconfig".into(), status));
             }
         }
 
@@ -46,18 +45,16 @@ impl Module for QualityModule {
                     let src = "quality/golangci.yml";
                     if engine.has_template(src) {
                         let dst = ctx.path(".golangci.yml");
-                        if engine.render_to(src, &vars, &dst, force)? {
-                            created.push(".golangci.yml".into());
-                        }
+                        let status = engine.render_to(src, &vars, &dst, force)?;
+                        files.push((".golangci.yml".into(), status));
                     }
                 }
                 "rust" => {
                     let src = "quality/rust-toolchain.toml";
                     if engine.has_template(src) {
                         let dst = ctx.path("rust-toolchain.toml");
-                        if engine.render_to(src, &vars, &dst, force)? {
-                            created.push("rust-toolchain.toml".into());
-                        }
+                        let status = engine.render_to(src, &vars, &dst, force)?;
+                        files.push(("rust-toolchain.toml".into(), status));
                     }
                 }
                 "typescript" | "javascript" => {
@@ -67,9 +64,8 @@ impl Module for QualityModule {
                     ] {
                         if engine.has_template(src) {
                             let dst = ctx.path(dst_rel);
-                            if engine.render_to(src, &vars, &dst, force)? {
-                                created.push(dst_rel.to_string());
-                            }
+                            let status = engine.render_to(src, &vars, &dst, force)?;
+                            files.push((dst_rel.to_string(), status));
                         }
                     }
                 }
@@ -77,33 +73,30 @@ impl Module for QualityModule {
                     let src = "quality/ruff.toml";
                     if engine.has_template(src) {
                         let dst = ctx.path("ruff.toml");
-                        if engine.render_to(src, &vars, &dst, force)? {
-                            created.push("ruff.toml".into());
-                        }
+                        let status = engine.render_to(src, &vars, &dst, force)?;
+                        files.push(("ruff.toml".into(), status));
                     }
                 }
                 "java" => {
                     let src = "quality/checkstyle.xml";
                     if engine.has_template(src) {
                         let dst = ctx.path("checkstyle.xml");
-                        if engine.render_to(src, &vars, &dst, force)? {
-                            created.push("checkstyle.xml".into());
-                        }
+                        let status = engine.render_to(src, &vars, &dst, force)?;
+                        files.push(("checkstyle.xml".into(), status));
                     }
                 }
                 "cpp" | "c" => {
                     let src = "quality/clang-format";
                     if engine.has_template(src) {
                         let dst = ctx.path(".clang-format");
-                        if engine.render_to(src, &vars, &dst, force)? {
-                            created.push(".clang-format".into());
-                        }
+                        let status = engine.render_to(src, &vars, &dst, force)?;
+                        files.push((".clang-format".into(), status));
                     }
                 }
                 _ => {}
             }
         }
 
-        Ok(created)
+        Ok(files)
     }
 }

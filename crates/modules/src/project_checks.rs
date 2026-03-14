@@ -140,7 +140,7 @@ fn check_package_manager_consistency(
     }
 }
 
-/// Check build files match configured build tool.
+/// Check build files match configured build tool and validate required targets.
 pub fn check_build(root: &Path, config: &HarnConfig) -> CheckResult {
     let mut result = CheckResult::default();
     let check = "build";
@@ -157,8 +157,20 @@ pub fn check_build(root: &Path, config: &HarnConfig) -> CheckResult {
         _ => return result,
     };
 
-    if root.join(expected_file).exists() {
+    let file_path = root.join(expected_file);
+    if file_path.exists() {
         CheckResult::ok(check, format!("{expected_file} exists"));
+
+        // Validate required targets
+        if let Ok(content) = std::fs::read_to_string(&file_path) {
+            check_build_targets(
+                &content,
+                expected_file,
+                build.tool.as_str(),
+                &mut result,
+                check,
+            );
+        }
     } else {
         result.push(Diagnostic {
             severity: Severity::Warning,
@@ -171,7 +183,51 @@ pub fn check_build(root: &Path, config: &HarnConfig) -> CheckResult {
     result
 }
 
-/// Check git config files.
+fn check_build_targets(
+    content: &str,
+    file_name: &str,
+    tool: &str,
+    result: &mut CheckResult,
+    check: &str,
+) {
+    let required_targets = ["build", "test", "lint", "fmt"];
+
+    for target in &required_targets {
+        let has_target = match tool {
+            "make" => {
+                // Makefile: look for `target:` at start of line
+                content
+                    .lines()
+                    .any(|line| line.starts_with(&format!("{target}:")))
+            }
+            "just" => {
+                // Justfile: look for `target:` at start of line (same syntax)
+                content
+                    .lines()
+                    .any(|line| line.starts_with(&format!("{target}:")))
+            }
+            "task" => {
+                // Taskfile.yml: look for `target:` as a task key (indented)
+                content.contains(&format!("  {target}:"))
+                    || content.contains(&format!("\t{target}:"))
+            }
+            _ => true,
+        };
+
+        if has_target {
+            CheckResult::ok(check, format!("{file_name} has '{target}' target"));
+        } else {
+            result.push(Diagnostic {
+                severity: Severity::Warning,
+                check: check.into(),
+                message: format!("{file_name} missing '{target}' target"),
+                fix: None,
+            });
+        }
+    }
+}
+
+/// Check git config files and .gitignore coverage.
 pub fn check_git(root: &Path, config: &HarnConfig) -> CheckResult {
     let mut result = CheckResult::default();
     let check = "git";
@@ -182,8 +238,14 @@ pub fn check_git(root: &Path, config: &HarnConfig) -> CheckResult {
     };
 
     if git.gitignore {
-        if root.join(".gitignore").exists() {
+        let gitignore_path = root.join(".gitignore");
+        if gitignore_path.exists() {
             CheckResult::ok(check, ".gitignore exists");
+
+            // Validate language-specific coverage
+            if let Ok(content) = std::fs::read_to_string(&gitignore_path) {
+                check_gitignore_coverage(&content, config, &mut result, check);
+            }
         } else {
             result.push(Diagnostic {
                 severity: Severity::Warning,
@@ -210,7 +272,44 @@ pub fn check_git(root: &Path, config: &HarnConfig) -> CheckResult {
     result
 }
 
-/// Check quality config files.
+fn check_gitignore_coverage(
+    content: &str,
+    config: &HarnConfig,
+    result: &mut CheckResult,
+    check: &str,
+) {
+    let required: &[(&str, &[&str])] = &[
+        ("rust", &["target/"]),
+        ("go", &["bin/"]),
+        ("typescript", &["node_modules/"]),
+        ("javascript", &["node_modules/"]),
+        ("python", &["__pycache__/", "*.pyc"]),
+        ("java", &["*.class"]),
+        ("dart", &[".dart_tool/"]),
+        ("flutter", &[".dart_tool/"]),
+        ("cpp", &["*.o"]),
+        ("c", &["*.o"]),
+    ];
+
+    for lang in &config.stacks.languages {
+        if let Some((_, patterns)) = required.iter().find(|(l, _)| *l == lang.as_str()) {
+            for pattern in *patterns {
+                if content.contains(pattern) {
+                    CheckResult::ok(check, format!(".gitignore covers {lang} ({pattern})"));
+                } else {
+                    result.push(Diagnostic {
+                        severity: Severity::Warning,
+                        check: check.into(),
+                        message: format!(".gitignore missing '{pattern}' for {lang}"),
+                        fix: None,
+                    });
+                }
+            }
+        }
+    }
+}
+
+/// Check quality config files and linter presence.
 pub fn check_quality(root: &Path, config: &HarnConfig) -> CheckResult {
     let mut result = CheckResult::default();
     let check = "quality";
@@ -233,7 +332,61 @@ pub fn check_quality(root: &Path, config: &HarnConfig) -> CheckResult {
         }
     }
 
+    // Check language-specific linter configs
+    for lang in &config.stacks.languages {
+        check_linter_config(root, lang, &mut result, check);
+    }
+
     result
+}
+
+fn check_linter_config(root: &Path, lang: &str, result: &mut CheckResult, check: &str) {
+    let (config_name, paths): (&str, &[&str]) = match lang {
+        "rust" => ("clippy config", &["clippy.toml", ".clippy.toml"]),
+        "go" => ("golangci-lint config", &[".golangci.yml", ".golangci.yaml"]),
+        "typescript" | "javascript" => (
+            "eslint config",
+            &[
+                "eslint.config.js",
+                "eslint.config.mjs",
+                "eslint.config.cjs",
+                ".eslintrc.json",
+                ".eslintrc.js",
+                ".eslintrc.yml",
+            ],
+        ),
+        "python" => (
+            "ruff/linter config",
+            &["ruff.toml", ".ruff.toml", "pyproject.toml"],
+        ),
+        "java" => ("checkstyle config", &["checkstyle.xml"]),
+        "cpp" | "c" => ("clang-format config", &[".clang-format", ".clang-tidy"]),
+        _ => return,
+    };
+
+    let found = paths.iter().any(|p| root.join(p).exists());
+
+    // For rust, also accept workspace Cargo.toml with clippy lints
+    let found = if lang == "rust" && !found {
+        root.join("Cargo.toml")
+            .exists()
+            .then(|| std::fs::read_to_string(root.join("Cargo.toml")).ok())
+            .flatten()
+            .is_some_and(|c| c.contains("[workspace.lints.clippy]") || c.contains("[lints.clippy]"))
+    } else {
+        found
+    };
+
+    if found {
+        CheckResult::ok(check, format!("{config_name} found ({lang})"));
+    } else {
+        result.push(Diagnostic {
+            severity: Severity::Warning,
+            check: check.into(),
+            message: format!("no {config_name} found for {lang}"),
+            fix: None,
+        });
+    }
 }
 
 /// Run all project-wide checks (non-SDD).

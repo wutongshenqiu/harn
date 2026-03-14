@@ -1,5 +1,5 @@
 use anyhow::Result;
-use harn_core::context::ProjectContext;
+use harn_core::context::{ProjectContext, WriteStatus};
 use harn_core::module::{Module, ModuleId};
 use harn_templates::TemplateEngine;
 
@@ -21,11 +21,11 @@ impl Module for GitModule {
         ".gitignore, .gitattributes"
     }
 
-    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
-        let engine = TemplateEngine::with_dry_run(ctx.dry_run);
+    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<(String, WriteStatus)>> {
+        let engine = TemplateEngine::from_context(ctx);
         let vars = TemplateEngine::vars_from_context(ctx);
         let force = ctx.force;
-        let mut created = Vec::new();
+        let mut files = Vec::new();
 
         let git_config = ctx.config.modules.git.clone().unwrap_or_default();
 
@@ -73,23 +73,22 @@ impl Module for GitModule {
 
             content.push_str("# Logs\n*.log\nlogs/\n\n");
             content.push_str("# Temp\ntmp/\n.tmp/\n\n");
-            content.push_str("# Claude Code worktrees\n.claude/worktrees/\n");
+            content.push_str("# Claude Code worktrees\n.claude/worktrees/\n\n");
+            content.push_str("# Harn backups\n.harn-backup/\n");
 
             let dst = ctx.path(".gitignore");
-            if ctx.write_file(&dst, &content)? {
-                created.push(".gitignore".into());
-            }
+            let status = ctx.write_file(&dst, &content)?;
+            files.push((".gitignore".into(), status));
         }
 
         if git_config.gitattributes {
             let dst = ctx.path(".gitattributes");
-            if engine.has_template("git/gitattributes")
-                && engine.render_to("git/gitattributes", &vars, &dst, force)?
-            {
-                created.push(".gitattributes".into());
+            if engine.has_template("git/gitattributes") {
+                let status = engine.render_to("git/gitattributes", &vars, &dst, force)?;
+                files.push((".gitattributes".into(), status));
             }
         }
 
-        Ok(created)
+        Ok(files)
     }
 }

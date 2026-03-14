@@ -1,5 +1,5 @@
 use anyhow::Result;
-use harn_core::context::ProjectContext;
+use harn_core::context::{ProjectContext, WriteStatus};
 use harn_core::module::{Module, ModuleId};
 use harn_templates::TemplateEngine;
 
@@ -33,27 +33,25 @@ impl Module for SddModule {
         "Documentation structure: specs, reference docs, playbooks"
     }
 
-    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
-        let engine = TemplateEngine::with_dry_run(ctx.dry_run);
+    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<(String, WriteStatus)>> {
+        let engine = TemplateEngine::from_context(ctx);
         let vars = TemplateEngine::vars_from_context(ctx);
         let force = ctx.force;
-        let mut created = Vec::new();
+        let mut files = Vec::new();
 
         // Spec templates (copy as-is, no variable substitution needed)
         let spec_templates = ["prd.md", "technical-design.md", "research.md"];
         for name in &spec_templates {
             let src = format!("sdd/specs/_templates/{name}");
             let dst = ctx.path(&format!("docs/specs/_templates/{name}"));
-            if engine.copy_to(&src, &dst, force)? {
-                created.push(format!("docs/specs/_templates/{name}"));
-            }
+            let status = engine.copy_to(&src, &dst, force)?;
+            files.push((format!("docs/specs/_templates/{name}"), status));
         }
 
         // Spec registry
         let dst = ctx.path("docs/specs/_index.md");
-        if engine.render_to("sdd/specs/_index.md", &vars, &dst, force)? {
-            created.push("docs/specs/_index.md".into());
-        }
+        let status = engine.render_to("sdd/specs/_index.md", &vars, &dst, force)?;
+        files.push(("docs/specs/_index.md".into(), status));
 
         // Create active/completed directories
         if !ctx.dry_run {
@@ -77,9 +75,8 @@ impl Module for SddModule {
             for src in &ref_templates {
                 let rel = src.strip_prefix("sdd/").unwrap();
                 let dst = ctx.path(&format!("docs/{rel}"));
-                if engine.render_to(src, &vars, &dst, force)? {
-                    created.push(format!("docs/{rel}"));
-                }
+                let status = engine.render_to(src, &vars, &dst, force)?;
+                files.push((format!("docs/{rel}"), status));
             }
         }
 
@@ -90,18 +87,16 @@ impl Module for SddModule {
             for src in SDD_PLAYBOOK_FILES {
                 let rel = src.strip_prefix("sdd/").unwrap();
                 let dst = ctx.path(&format!("docs/{rel}"));
-                if engine.copy_to(src, &dst, force)? {
-                    created.push(format!("docs/{rel}"));
-                }
+                let status = engine.copy_to(src, &dst, force)?;
+                files.push((format!("docs/{rel}"), status));
             }
         }
 
         // Docs README
         let dst = ctx.path("docs/README.md");
-        if engine.render_to("sdd/README.md", &vars, &dst, force)? {
-            created.push("docs/README.md".into());
-        }
+        let status = engine.render_to("sdd/README.md", &vars, &dst, force)?;
+        files.push(("docs/README.md".into(), status));
 
-        Ok(created)
+        Ok(files)
     }
 }

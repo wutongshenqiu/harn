@@ -1,5 +1,5 @@
 use anyhow::Result;
-use harn_core::context::ProjectContext;
+use harn_core::context::{ProjectContext, WriteStatus};
 use harn_core::module::{Module, ModuleId};
 use harn_templates::TemplateEngine;
 
@@ -19,11 +19,11 @@ impl Module for DockerModule {
         "Dockerfile and docker-compose.yml"
     }
 
-    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
-        let engine = TemplateEngine::with_dry_run(ctx.dry_run);
+    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<(String, WriteStatus)>> {
+        let engine = TemplateEngine::from_context(ctx);
         let mut vars = TemplateEngine::vars_from_context(ctx);
         let force = ctx.force;
-        let mut created = Vec::new();
+        let mut files = Vec::new();
 
         let primary_lang = ctx
             .config
@@ -46,9 +46,8 @@ impl Module for DockerModule {
 
             if engine.has_template(&src) {
                 let dst = ctx.path("Dockerfile");
-                if engine.render_to(&src, &vars, &dst, force)? {
-                    created.push("Dockerfile".into());
-                }
+                let status = engine.render_to(&src, &vars, &dst, force)?;
+                files.push(("Dockerfile".into(), status));
             }
         }
 
@@ -56,12 +55,11 @@ impl Module for DockerModule {
             let src = "docker/docker-compose.yml";
             if engine.has_template(src) {
                 let dst = ctx.path("docker-compose.yml");
-                if engine.render_to(src, &vars, &dst, force)? {
-                    created.push("docker-compose.yml".into());
-                }
+                let status = engine.render_to(src, &vars, &dst, force)?;
+                files.push(("docker-compose.yml".into(), status));
             }
         }
 
-        Ok(created)
+        Ok(files)
     }
 }

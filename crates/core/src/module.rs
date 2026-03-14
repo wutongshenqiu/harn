@@ -1,4 +1,4 @@
-use crate::context::ProjectContext;
+use crate::context::{ProjectContext, WriteStatus};
 
 /// Unique identifier for a module.
 pub type ModuleId = &'static str;
@@ -27,6 +27,6 @@ pub trait Module {
 
     /// Generate files into the project context.
     ///
-    /// Returns the list of relative paths that were created or modified.
-    fn generate(&self, ctx: &mut ProjectContext) -> anyhow::Result<Vec<String>>;
+    /// Returns the list of (path, status) pairs for each file attempted.
+    fn generate(&self, ctx: &mut ProjectContext) -> anyhow::Result<Vec<(String, WriteStatus)>>;
 }

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use harn_core::context::ProjectContext;
+use harn_core::context::{ProjectContext, WriteStatus};
 use harn_core::module::{Module, ModuleId};
 use harn_templates::TemplateEngine;
 
@@ -29,11 +29,11 @@ impl Module for AgentModule {
         "AI coding agent configs (Claude, Cursor, Windsurf, Cline, OpenCode, Qoder)"
     }
 
-    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
-        let engine = TemplateEngine::with_dry_run(ctx.dry_run);
+    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<(String, WriteStatus)>> {
+        let engine = TemplateEngine::from_context(ctx);
         let mut vars = TemplateEngine::vars_from_context(ctx);
         let force = ctx.force;
-        let mut created = Vec::new();
+        let mut files = Vec::new();
 
         let agent_config = ctx.config.modules.agent.clone().unwrap_or_default();
 
@@ -45,37 +45,36 @@ impl Module for AgentModule {
         for name in &["CLAUDE.md", "AGENTS.md"] {
             let src = format!("agent/{name}");
             let dst = ctx.path(name);
-            if engine.render_to(&src, &vars, &dst, force)? {
-                created.push(name.to_string());
-            }
+            let status = engine.render_to(&src, &vars, &dst, force)?;
+            files.push((name.to_string(), status));
         }
 
         // Generate per-tool configs
         for tool in &agent_config.tools {
             match tool.as_str() {
                 "claude" => {
-                    created.extend(self.generate_claude(ctx, &engine, &vars, &agent_config)?);
+                    files.extend(self.generate_claude(ctx, &engine, &vars, &agent_config)?);
                 }
                 "cursor" => {
-                    created.extend(self.generate_cursor(ctx, &engine, &vars)?);
+                    files.extend(self.generate_cursor(ctx, &engine, &vars)?);
                 }
                 "windsurf" => {
-                    created.extend(self.generate_windsurf(ctx, &engine, &vars)?);
+                    files.extend(self.generate_windsurf(ctx, &engine, &vars)?);
                 }
                 "cline" => {
-                    created.extend(self.generate_cline(ctx, &engine, &vars)?);
+                    files.extend(self.generate_cline(ctx, &engine, &vars)?);
                 }
                 "opencode" => {
-                    created.extend(self.generate_opencode(ctx, &engine, &vars, &agent_config)?);
+                    files.extend(self.generate_opencode(ctx, &engine, &vars, &agent_config)?);
                 }
                 "qoder" => {
-                    created.extend(self.generate_qoder(ctx, &engine, &vars)?);
+                    files.extend(self.generate_qoder(ctx, &engine, &vars)?);
                 }
                 _ => {} // Unknown tool, skip
             }
         }
 
-        Ok(created)
+        Ok(files)
     }
 }
 
@@ -86,29 +85,27 @@ impl AgentModule {
         engine: &TemplateEngine,
         vars: &std::collections::HashMap<String, String>,
         agent_config: &harn_core::config::AgentConfig,
-    ) -> Result<Vec<String>> {
+    ) -> Result<Vec<(String, WriteStatus)>> {
         let force = ctx.force;
-        let mut created = Vec::new();
+        let mut files = Vec::new();
 
         // settings.json — build dynamically based on stacks
-        let settings = self.build_claude_settings(ctx);
+        let settings = self.build_claude_settings(ctx, agent_config);
         let dst = ctx.path(".claude/settings.json");
-        if ctx.write_file(&dst, &settings)? {
-            created.push(".claude/settings.json".into());
-        }
+        let status = ctx.write_file(&dst, &settings)?;
+        files.push((".claude/settings.json".into(), status));
 
         // Slash commands
         for cmd_name in &agent_config.commands {
             let src = format!("agent/commands/{cmd_name}.md");
             if engine.has_template(&src) {
                 let dst = ctx.path(&format!(".claude/commands/{cmd_name}.md"));
-                if engine.render_to(&src, vars, &dst, force)? {
-                    created.push(format!(".claude/commands/{cmd_name}.md"));
-                }
+                let status = engine.render_to(&src, vars, &dst, force)?;
+                files.push((format!(".claude/commands/{cmd_name}.md"), status));
             }
         }
 
-        Ok(created)
+        Ok(files)
     }
 
     fn generate_cursor(
@@ -116,13 +113,12 @@ impl AgentModule {
         ctx: &ProjectContext,
         engine: &TemplateEngine,
         vars: &std::collections::HashMap<String, String>,
-    ) -> Result<Vec<String>> {
-        let mut created = Vec::new();
+    ) -> Result<Vec<(String, WriteStatus)>> {
+        let mut files = Vec::new();
         let dst = ctx.path(".cursor/rules");
-        if engine.render_to("agent/cursor-rules", vars, &dst, ctx.force)? {
-            created.push(".cursor/rules".into());
-        }
-        Ok(created)
+        let status = engine.render_to("agent/cursor-rules", vars, &dst, ctx.force)?;
+        files.push((".cursor/rules".into(), status));
+        Ok(files)
     }
 
     fn generate_windsurf(
@@ -130,13 +126,12 @@ impl AgentModule {
         ctx: &ProjectContext,
         engine: &TemplateEngine,
         vars: &std::collections::HashMap<String, String>,
-    ) -> Result<Vec<String>> {
-        let mut created = Vec::new();
+    ) -> Result<Vec<(String, WriteStatus)>> {
+        let mut files = Vec::new();
         let dst = ctx.path(".windsurfrules");
-        if engine.render_to("agent/windsurfrules", vars, &dst, ctx.force)? {
-            created.push(".windsurfrules".into());
-        }
-        Ok(created)
+        let status = engine.render_to("agent/windsurfrules", vars, &dst, ctx.force)?;
+        files.push((".windsurfrules".into(), status));
+        Ok(files)
     }
 
     fn generate_cline(
@@ -144,13 +139,12 @@ impl AgentModule {
         ctx: &ProjectContext,
         engine: &TemplateEngine,
         vars: &std::collections::HashMap<String, String>,
-    ) -> Result<Vec<String>> {
-        let mut created = Vec::new();
+    ) -> Result<Vec<(String, WriteStatus)>> {
+        let mut files = Vec::new();
         let dst = ctx.path(".clinerules");
-        if engine.render_to("agent/clinerules", vars, &dst, ctx.force)? {
-            created.push(".clinerules".into());
-        }
-        Ok(created)
+        let status = engine.render_to("agent/clinerules", vars, &dst, ctx.force)?;
+        files.push((".clinerules".into(), status));
+        Ok(files)
     }
 
     fn generate_opencode(
@@ -159,21 +153,20 @@ impl AgentModule {
         engine: &TemplateEngine,
         vars: &std::collections::HashMap<String, String>,
         agent_config: &harn_core::config::AgentConfig,
-    ) -> Result<Vec<String>> {
+    ) -> Result<Vec<(String, WriteStatus)>> {
         let force = ctx.force;
-        let mut created = Vec::new();
+        let mut files = Vec::new();
 
         for cmd_name in &agent_config.commands {
             let src = format!("agent/commands/{cmd_name}.md");
             if engine.has_template(&src) {
                 let dst = ctx.path(&format!(".opencode/commands/{cmd_name}.md"));
-                if engine.render_to(&src, vars, &dst, force)? {
-                    created.push(format!(".opencode/commands/{cmd_name}.md"));
-                }
+                let status = engine.render_to(&src, vars, &dst, force)?;
+                files.push((format!(".opencode/commands/{cmd_name}.md"), status));
             }
         }
 
-        Ok(created)
+        Ok(files)
     }
 
     fn generate_qoder(
@@ -181,13 +174,12 @@ impl AgentModule {
         ctx: &ProjectContext,
         engine: &TemplateEngine,
         vars: &std::collections::HashMap<String, String>,
-    ) -> Result<Vec<String>> {
-        let mut created = Vec::new();
+    ) -> Result<Vec<(String, WriteStatus)>> {
+        let mut files = Vec::new();
         let dst = ctx.path(".qoder/rules/harn.md");
-        if engine.render_to("agent/qoderrules", vars, &dst, ctx.force)? {
-            created.push(".qoder/rules/harn.md".into());
-        }
-        Ok(created)
+        let status = engine.render_to("agent/qoderrules", vars, &dst, ctx.force)?;
+        files.push((".qoder/rules/harn.md".into(), status));
+        Ok(files)
     }
 
     fn build_slash_commands_table(commands: &[String]) -> String {
@@ -237,7 +229,11 @@ impl AgentModule {
         }
     }
 
-    fn build_claude_settings(&self, ctx: &ProjectContext) -> String {
+    fn build_claude_settings(
+        &self,
+        ctx: &ProjectContext,
+        agent_config: &harn_core::config::AgentConfig,
+    ) -> String {
         let mut perms = vec![
             "Bash(make:*)".to_string(),
             "Bash(git:*)".to_string(),
@@ -306,10 +302,11 @@ impl AgentModule {
         }
 
         let perms_json: Vec<String> = perms.iter().map(|p| format!("      \"{p}\"")).collect();
-        let hook_cmd = "make lint && make test";
 
-        format!(
-            r#"{{
+        if agent_config.pre_commit_hook {
+            let hook_cmd = "make lint && make test";
+            format!(
+                r#"{{
   "permissions": {{
     "allow": [
 {}
@@ -329,7 +326,19 @@ impl AgentModule {
     ]
   }}
 }}"#,
-            perms_json.join(",\n")
-        )
+                perms_json.join(",\n")
+            )
+        } else {
+            format!(
+                r#"{{
+  "permissions": {{
+    "allow": [
+{}
+    ]
+  }}
+}}"#,
+                perms_json.join(",\n")
+            )
+        }
     }
 }

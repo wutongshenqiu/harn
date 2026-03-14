@@ -1,5 +1,5 @@
 use anyhow::Result;
-use harn_core::context::ProjectContext;
+use harn_core::context::{ProjectContext, WriteStatus};
 use harn_core::module::{Module, ModuleId};
 use harn_templates::TemplateEngine;
 
@@ -24,11 +24,11 @@ impl Module for CiModule {
         "CI/CD workflows (GitHub Actions, GitLab CI, Gitea)"
     }
 
-    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
-        let engine = TemplateEngine::with_dry_run(ctx.dry_run);
+    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<(String, WriteStatus)>> {
+        let engine = TemplateEngine::from_context(ctx);
         let mut vars = TemplateEngine::vars_from_context(ctx);
         let force = ctx.force;
-        let mut created = Vec::new();
+        let mut files = Vec::new();
 
         let ci_config = ctx.config.modules.ci.clone().unwrap_or_default();
 
@@ -63,8 +63,9 @@ impl Module for CiModule {
 
             let dst = ctx.path(&output_rel);
 
-            if engine.has_template(&src) && engine.render_to(&src, &vars, &dst, force)? {
-                created.push(output_rel);
+            if engine.has_template(&src) {
+                let status = engine.render_to(&src, &vars, &dst, force)?;
+                files.push((output_rel, status));
             }
         }
 
@@ -73,12 +74,11 @@ impl Module for CiModule {
             let src = "ci/github/claude.yml";
             if engine.has_template(src) {
                 let dst = ctx.path(".github/workflows/claude.yml");
-                if engine.render_to(src, &vars, &dst, force)? {
-                    created.push(".github/workflows/claude.yml".into());
-                }
+                let status = engine.render_to(src, &vars, &dst, force)?;
+                files.push((".github/workflows/claude.yml".into(), status));
             }
         }
 
-        Ok(created)
+        Ok(files)
     }
 }

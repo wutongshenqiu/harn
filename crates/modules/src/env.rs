@@ -1,5 +1,5 @@
 use anyhow::Result;
-use harn_core::context::ProjectContext;
+use harn_core::context::{ProjectContext, WriteStatus};
 use harn_core::module::{Module, ModuleId};
 use harn_templates::TemplateEngine;
 
@@ -19,11 +19,11 @@ impl Module for EnvModule {
         ".env.example template"
     }
 
-    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
-        let engine = TemplateEngine::with_dry_run(ctx.dry_run);
+    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<(String, WriteStatus)>> {
+        let engine = TemplateEngine::from_context(ctx);
         let mut vars = TemplateEngine::vars_from_context(ctx);
         let force = ctx.force;
-        let mut created = Vec::new();
+        let mut files = Vec::new();
 
         let env_config = ctx.config.modules.env.clone().unwrap_or_default();
 
@@ -39,11 +39,10 @@ impl Module for EnvModule {
         let src = "env/env.example";
         if engine.has_template(src) {
             let dst = ctx.path(".env.example");
-            if engine.render_to(src, &vars, &dst, force)? {
-                created.push(".env.example".into());
-            }
+            let status = engine.render_to(src, &vars, &dst, force)?;
+            files.push((".env.example".into(), status));
         }
 
-        Ok(created)
+        Ok(files)
     }
 }

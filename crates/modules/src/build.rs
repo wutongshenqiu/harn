@@ -1,6 +1,6 @@
 use anyhow::Result;
 use console::style;
-use harn_core::context::ProjectContext;
+use harn_core::context::{ProjectContext, WriteStatus};
 use harn_core::module::{Module, ModuleId};
 use harn_templates::TemplateEngine;
 
@@ -25,11 +25,11 @@ impl Module for BuildModule {
         "Unified build tool (Make, Just, Task)"
     }
 
-    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<String>> {
-        let engine = TemplateEngine::with_dry_run(ctx.dry_run);
+    fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<(String, WriteStatus)>> {
+        let engine = TemplateEngine::from_context(ctx);
         let mut vars = TemplateEngine::vars_from_context(ctx);
         let force = ctx.force;
-        let mut created = Vec::new();
+        let mut files = Vec::new();
 
         let build_config = ctx.config.modules.build.clone().unwrap_or_default();
         let primary_lang = ctx
@@ -61,9 +61,8 @@ impl Module for BuildModule {
 
         let dst = ctx.path(output_file);
         if engine.has_template(&src) {
-            if engine.render_to(&src, &vars, &dst, force)? {
-                created.push(output_file.into());
-            }
+            let status = engine.render_to(&src, &vars, &dst, force)?;
+            files.push((output_file.into(), status));
         } else {
             eprintln!(
                 "  {} No template for build tool '{}' (language: {}), skipping",
@@ -73,6 +72,6 @@ impl Module for BuildModule {
             );
         }
 
-        Ok(created)
+        Ok(files)
     }
 }
