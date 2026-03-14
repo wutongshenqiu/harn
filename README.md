@@ -181,6 +181,8 @@ harn example                 Generate example harn.toml
 harn issue                   Submit an issue (interactive)
 harn issue --type bug --title "..." --body "..."
                              Non-interactive issue creation
+echo "desc" | harn issue --type bug --title "..."
+                             Read body from stdin
 harn issue --open            Open browser to new issue page
 ```
 

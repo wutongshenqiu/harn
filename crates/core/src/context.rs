@@ -129,3 +129,122 @@ impl ProjectContext {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn is_written_returns_true_for_write_statuses() {
+        assert!(WriteStatus::Created.is_written());
+        assert!(WriteStatus::Overwritten.is_written());
+        assert!(WriteStatus::WouldCreate.is_written());
+        assert!(WriteStatus::WouldOverwrite.is_written());
+    }
+
+    #[test]
+    fn is_written_returns_false_for_skipped() {
+        assert!(!WriteStatus::Skipped.is_written());
+    }
+
+    #[test]
+    fn write_file_creates_new_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = HarnConfig::default_all("test".into());
+        let ctx = ProjectContext::new(dir.path().to_path_buf(), config);
+
+        let path = dir.path().join("new.txt");
+        let status = ctx.write_file(&path, "hello").unwrap();
+
+        assert_eq!(status, WriteStatus::Created);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "hello");
+    }
+
+    #[test]
+    fn write_file_skips_existing_without_force() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = HarnConfig::default_all("test".into());
+        let ctx = ProjectContext::new(dir.path().to_path_buf(), config);
+
+        let path = dir.path().join("existing.txt");
+        std::fs::write(&path, "original").unwrap();
+
+        let status = ctx.write_file(&path, "new content").unwrap();
+
+        assert_eq!(status, WriteStatus::Skipped);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "original");
+    }
+
+    #[test]
+    fn write_file_overwrites_with_force_and_backs_up() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = HarnConfig::default_all("test".into());
+        let mut ctx = ProjectContext::new(dir.path().to_path_buf(), config);
+        ctx.force = true;
+
+        let path = dir.path().join("existing.txt");
+        std::fs::write(&path, "original").unwrap();
+
+        let status = ctx.write_file(&path, "new content").unwrap();
+
+        assert_eq!(status, WriteStatus::Overwritten);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "new content");
+
+        // Verify backup was created
+        let backup = dir.path().join(".harn-backup/existing.txt");
+        assert!(backup.exists());
+        assert_eq!(std::fs::read_to_string(backup).unwrap(), "original");
+    }
+
+    #[test]
+    fn write_file_dry_run_would_create() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = HarnConfig::default_all("test".into());
+        let mut ctx = ProjectContext::new(dir.path().to_path_buf(), config);
+        ctx.dry_run = true;
+
+        let path = dir.path().join("new.txt");
+        let status = ctx.write_file(&path, "hello").unwrap();
+
+        assert_eq!(status, WriteStatus::WouldCreate);
+        assert!(!path.exists());
+    }
+
+    #[test]
+    fn write_file_dry_run_would_overwrite() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = HarnConfig::default_all("test".into());
+        let mut ctx = ProjectContext::new(dir.path().to_path_buf(), config);
+        ctx.dry_run = true;
+        ctx.force = true;
+
+        let path = dir.path().join("existing.txt");
+        std::fs::write(&path, "original").unwrap();
+
+        let status = ctx.write_file(&path, "new content").unwrap();
+
+        assert_eq!(status, WriteStatus::WouldOverwrite);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "original");
+        assert!(!dir.path().join(".harn-backup").exists());
+    }
+
+    #[test]
+    fn backup_preserves_subdirectory_structure() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = HarnConfig::default_all("test".into());
+        let mut ctx = ProjectContext::new(dir.path().to_path_buf(), config);
+        ctx.force = true;
+
+        let sub = dir.path().join("sub/dir");
+        std::fs::create_dir_all(&sub).unwrap();
+        let path = sub.join("file.txt");
+        std::fs::write(&path, "original").unwrap();
+
+        let status = ctx.write_file(&path, "replaced").unwrap();
+
+        assert_eq!(status, WriteStatus::Overwritten);
+        let backup = dir.path().join(".harn-backup/sub/dir/file.txt");
+        assert!(backup.exists());
+        assert_eq!(std::fs::read_to_string(backup).unwrap(), "original");
+    }
+}
