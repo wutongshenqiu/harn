@@ -4,7 +4,7 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 use console::style;
 use harn_core::context::WriteStatus;
-use harn_core::{HarnConfig, ProjectContext, url_encode};
+use harn_core::{AGENT_TOOL_LIST, HarnConfig, ProjectContext, url_encode};
 use harn_modules::ModuleRegistry;
 use std::io::IsTerminal;
 use std::path::PathBuf;
@@ -224,21 +224,39 @@ fn cmd_init(
     println!();
     println!("{}", style("Setup complete!").green().bold());
     println!();
+    let agent_tools = ctx
+        .config
+        .modules
+        .agent
+        .as_ref()
+        .map_or(&[][..], |agent| &agent.tools);
     println!("Next steps:");
-    println!("  1. Review and customize {}", style("CLAUDE.md").cyan());
-    println!(
-        "  2. Edit {} permissions",
-        style(".claude/settings.json").cyan()
-    );
+    println!("  1. Review and customize {}", style("AGENTS.md").cyan());
+    if agent_tools.iter().any(|tool| tool == "claude") {
+        println!(
+            "  2. Review {} and slash commands",
+            style(".claude/settings.json").cyan()
+        );
+    } else if agent_tools.iter().any(|tool| tool == "opencode") {
+        println!(
+            "  2. Review generated {}",
+            style(".opencode/commands/").cyan()
+        );
+    } else {
+        println!(
+            "  2. Confirm your configured agent tools in {}",
+            style("harn.toml").cyan()
+        );
+    }
     println!(
         "  3. Create your first spec: {}",
-        style("/spec create \"Feature\"").yellow()
+        style("harn spec \"Feature\"").yellow()
     );
     println!(
         "  4. Start developing: {}",
-        style("/implement SPEC-001").yellow()
+        style("share AGENTS.md with your coding agent").yellow()
     );
-    println!("  5. Ship changes: {}", style("/ship").yellow());
+    println!("  5. Verify changes with {}", style("make check").yellow());
 
     Ok(())
 }
@@ -394,7 +412,7 @@ fn cmd_doctor(directory: PathBuf, fix: bool) -> Result<()> {
     let has_sdd = root.join("docs/specs").exists();
     let config_path = root.join("harn.toml");
     let config = if config_path.exists() {
-        HarnConfig::load(&config_path).ok()
+        Some(HarnConfig::load(&config_path)?)
     } else {
         None
     };
@@ -478,6 +496,7 @@ fn cmd_example(output: PathBuf) -> Result<()> {
         style("OK").green().bold(),
         output.display()
     );
+    println!("Agent tool values: {}", style(AGENT_TOOL_LIST).cyan());
     Ok(())
 }
 

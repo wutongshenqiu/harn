@@ -1,6 +1,7 @@
 use anyhow::Result;
 use console::style;
 use dialoguer::{Confirm, FuzzySelect, Input, MultiSelect};
+use harn_core::agent_tools::SUPPORTED_AGENT_TOOLS;
 use harn_core::config::*;
 use std::path::Path;
 
@@ -51,7 +52,7 @@ pub fn gather_config(root: &Path) -> Result<HarnConfig> {
     let module_options = &[
         ("sdd", "SDD documentation (specs, reference, playbooks)"),
         ("ci", "CI/CD pipelines"),
-        ("agent", "AI agent configs (Claude, Cursor, etc.)"),
+        ("agent", "AI agent configs (Claude, Codex, Cursor, etc.)"),
         ("build", "Build orchestration (Make, Just, Task)"),
         ("ide", "IDE/editor configs"),
         ("git", "Git config (.gitignore, hooks)"),
@@ -171,11 +172,11 @@ fn gather_ci_config() -> Result<CiConfig> {
 }
 
 fn gather_agent_config() -> Result<AgentConfig> {
-    let tool_options = &["claude", "cursor", "windsurf", "cline", "opencode", "qoder"];
-    let tool_defaults = vec![true, false, false, false, false, false];
+    let tool_options: Vec<&str> = SUPPORTED_AGENT_TOOLS.iter().map(|tool| tool.id).collect();
+    let tool_defaults: Vec<bool> = tool_options.iter().map(|tool| *tool == "claude").collect();
     let selected = MultiSelect::new()
         .with_prompt("AI coding tools")
-        .items(tool_options)
+        .items(&tool_options)
         .defaults(&tool_defaults)
         .interact()?;
 

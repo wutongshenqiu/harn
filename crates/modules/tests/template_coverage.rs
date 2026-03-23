@@ -1,3 +1,4 @@
+use harn_core::agent_tools::AGENT_TOOL_IDS;
 use harn_modules::sdd::SDD_PLAYBOOK_FILES;
 use harn_templates::TemplateEngine;
 
@@ -130,6 +131,20 @@ fn ci_templates_exist_for_all_providers() {
         assert!(
             engine.has_template(&path),
             "Missing CI template for {provider}: {path}"
+        );
+    }
+}
+
+/// Verify that README mentions every supported agent tool value.
+#[test]
+fn readme_mentions_supported_agent_tools() {
+    let readme =
+        std::fs::read_to_string("../../README.md").expect("Could not read repository README");
+
+    for tool in AGENT_TOOL_IDS {
+        assert!(
+            readme.contains(tool),
+            "README.md should mention supported agent tool '{tool}'"
         );
     }
 }

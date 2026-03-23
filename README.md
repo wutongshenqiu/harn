@@ -8,6 +8,8 @@ Universal project harness with Spec-Driven Development (SDD) methodology.
 
 **harn** equips your project with production-grade development infrastructure in one command: SDD documentation, AI agent configs, CI/CD pipelines, build orchestration, and quality gates.
 
+`AGENTS.md` is generated as the primary repo brief for Codex and other tool-agnostic coding agents, with tool-specific overlays such as `.claude/` added when selected.
+
 Distilled from patterns across multiple production Rust/Go/TypeScript/Flutter/Python/Java/C++ projects.
 
 ## Install
@@ -53,8 +55,8 @@ harn add ci
 
 ```
 project/
-├── CLAUDE.md                     # AI agent context
-├── AGENTS.md                     # Universal agent context
+├── AGENTS.md                     # Primary repo context for Codex and generic agents
+├── CLAUDE.md                     # Claude Code supplement + slash commands
 ├── Makefile                      # Unified build (language-aware)
 ├── harn.toml                     # Reproducible config
 ├── .claude/                      # Claude Code config + slash commands
@@ -85,7 +87,7 @@ project/
 |--------|-------------|-------------|
 | `sdd` | Spec-Driven Development docs | playbooks, reference |
 | `ci` | CI/CD pipelines | github, gitlab, gitea/codeberg |
-| `agent` | AI coding agent configs | claude, cursor, windsurf, cline, opencode, qoder |
+| `agent` | AI coding agent configs | claude, codex, cursor, windsurf, cline, opencode, qoder |
 | `build` | Build orchestration | make, just, task |
 | `ide` | Editor configuration | vscode, zed (jetbrains, vim planned) |
 | `git` | Git config | .gitignore (language-aware), .gitattributes |
@@ -115,7 +117,7 @@ provider = "github"       # github | gitlab | gitea
 workflows = ["ci", "cd"]
 
 [modules.agent]
-tools = ["claude", "cursor"]
+tools = ["claude", "codex", "cursor"]
 commands = ["ship", "implement", "spec", "lint", "test", "review"]
 pre_commit_hook = true
 
@@ -158,7 +160,7 @@ harn implements **Harness Engineering** — treating developer infrastructure as
 
 1. **Convention over Configuration** — sensible defaults, escape hatches via `harn.toml`
 2. **Spec-Driven Development** — define features as Specs (PRD + TD), track lifecycle
-3. **AI-Agent-First** — CLAUDE.md + slash commands for AI-assisted workflows
+3. **AI-Agent-First** — AGENTS.md as primary context plus tool-specific overlays
 4. **Quality Gates** — optional pre-commit hooks enforce `make lint && make test` (`pre_commit_hook = true`)
 5. **SSOT Documentation** — reference docs as single source of truth
 6. **Reproducible** — `harn.toml` captures all decisions for team sharing

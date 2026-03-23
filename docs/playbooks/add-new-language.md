@@ -73,7 +73,7 @@ No code changes needed — `docker.rs` auto-discovers `Dockerfile.<lang>`.
 
 Update these files:
 - `README.md` — Language Support table
-- `CLAUDE.md` — already references this playbook in Extension Points
+- `AGENTS.md` — already references this playbook in Extension Points
 
 ## Verification
 

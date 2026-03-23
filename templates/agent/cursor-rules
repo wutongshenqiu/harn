@@ -15,7 +15,7 @@
 
 ## File References
 
-@CLAUDE.md — Full project rules and commands
+@AGENTS.md — Primary project rules and context
 @docs/specs/_index.md — Spec registry
 {% if project_type == "api" or project_type == "service" %}
 @docs/reference/ — SSOT type definitions and API conventions

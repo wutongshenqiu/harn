@@ -17,3 +17,4 @@
 - Read files before editing — understand existing code first
 - Use `{{ build_tool }} check` to verify changes (lint + test)
 - Prefer editing existing files over creating new ones
+- Treat `AGENTS.md` as the primary project brief
