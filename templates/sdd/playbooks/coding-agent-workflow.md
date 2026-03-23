@@ -2,6 +2,8 @@
 
 Core principle: **Read docs first, write code, update docs last.**
 
+Use `AGENTS.md` as the primary repo brief; tool-specific files such as `CLAUDE.md` add workflow-specific overlays.
+
 ## Flow
 
 ```

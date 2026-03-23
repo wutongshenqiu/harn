@@ -1,4 +1,5 @@
 use anyhow::Result;
+use harn_core::agent_tools::validate_agent_tools;
 use harn_core::context::{ProjectContext, WriteStatus};
 use harn_core::module::{Module, ModuleId};
 use harn_templates::TemplateEngine;
@@ -12,6 +13,7 @@ use harn_templates::TemplateEngine;
 /// - Cline: .clinerules
 /// - `OpenCode`: .opencode/commands/
 /// - Qoder: .qoder/rules/
+/// - Codex: AGENTS.md
 ///
 /// Also generates CLAUDE.md and AGENTS.md project context files.
 pub struct AgentModule;
@@ -26,7 +28,7 @@ impl Module for AgentModule {
     }
 
     fn description(&self) -> &str {
-        "AI coding agent configs (Claude, Cursor, Windsurf, Cline, OpenCode, Qoder)"
+        "AI coding agent configs (Claude, Cursor, Windsurf, Cline, OpenCode, Qoder, Codex)"
     }
 
     fn generate(&self, ctx: &mut ProjectContext) -> Result<Vec<(String, WriteStatus)>> {
@@ -36,6 +38,7 @@ impl Module for AgentModule {
         let mut files = Vec::new();
 
         let agent_config = ctx.config.modules.agent.clone().unwrap_or_default();
+        validate_agent_tools(&agent_config.tools)?;
 
         // Build slash commands table from configured commands
         let slash_table = Self::build_slash_commands_table(&agent_config.commands);
@@ -70,7 +73,8 @@ impl Module for AgentModule {
                 "qoder" => {
                     files.extend(self.generate_qoder(ctx, &engine, &vars)?);
                 }
-                _ => {} // Unknown tool, skip
+                "codex" => {}
+                _ => unreachable!("validate_agent_tools should reject unsupported tools"),
             }
         }
 

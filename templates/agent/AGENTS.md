@@ -1,6 +1,16 @@
 # {{ project_name }} — Agent Context
 
-Universal context for AI coding agents. See CLAUDE.md for full reference.
+Primary repository context for Codex and other coding agents.
+
+## Overview
+
+_Brief project description._
+
+## Key Paths
+
+```
+TODO: List key directories and files
+```
 
 ## Commands
 
@@ -11,6 +21,14 @@ Universal context for AI coding agents. See CLAUDE.md for full reference.
 {{ build_tool }} fmt          # Format code
 {{ build_tool }} clean        # Clean artifacts
 ```
+
+## Slash Commands
+
+These are primarily used by Claude Code / OpenCode style workflows.
+
+| Command | Purpose |
+|---------|---------|
+{{ slash_commands_table }}
 
 ## Coding Rules
 
@@ -28,6 +46,7 @@ Universal context for AI coding agents. See CLAUDE.md for full reference.
 
 - Branches: `feat/xxx`, `fix/xxx`, `docs/xxx`, `refactor/xxx`
 - Pre-commit: `{{ build_tool }} lint && {{ build_tool }} test`
+- Tool-specific overlays live under `.claude/`, `.cursor/`, `.opencode/`, and similar paths
 
 ## SDD (Spec-Driven Development)
 

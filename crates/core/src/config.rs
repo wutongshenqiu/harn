@@ -1,3 +1,4 @@
+use crate::agent_tools::validate_agent_tools;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -127,7 +128,7 @@ impl Default for CiConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConfig {
-    /// AI tools to configure: claude, cursor, windsurf, cline, opencode
+    /// AI tools to configure: claude, cursor, windsurf, cline, opencode, qoder, codex
     #[serde(default = "default_agent_tools")]
     pub tools: Vec<String>,
 
@@ -265,6 +266,7 @@ impl HarnConfig {
     pub fn load(path: &Path) -> anyhow::Result<Self> {
         let content = std::fs::read_to_string(path)?;
         let config: Self = toml::from_str(&content)?;
+        config.validate()?;
         Ok(config)
     }
 
@@ -331,6 +333,14 @@ impl HarnConfig {
         }
         modules
     }
+
+    pub fn validate(&self) -> anyhow::Result<()> {
+        if let Some(agent) = &self.modules.agent {
+            validate_agent_tools(&agent.tools)?;
+        }
+
+        Ok(())
+    }
 }
 
 impl Default for SddConfig {
@@ -339,5 +349,55 @@ impl Default for SddConfig {
             playbooks: true,
             reference: true,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::HarnConfig;
+
+    #[test]
+    fn load_rejects_unknown_agent_tool() {
+        let dir = tempfile::tempdir().expect("tempdir should be created");
+        let path = dir.path().join("harn.toml");
+        let content = r#"
+[project]
+name = "bad-agent-tool"
+type = "single"
+
+[modules.agent]
+tools = ["codex", "unknown"]
+"#;
+        std::fs::write(&path, content).expect("config should be written");
+
+        let err = HarnConfig::load(&path).expect_err("unknown tool should fail validation");
+        let message = err.to_string();
+
+        assert!(message.contains("Unsupported agent tool(s): unknown"));
+        assert!(message.contains("codex"));
+    }
+
+    #[test]
+    fn load_accepts_supported_agent_tools() {
+        let dir = tempfile::tempdir().expect("tempdir should be created");
+        let path = dir.path().join("harn.toml");
+        let content = r#"
+[project]
+name = "supported-agent-tool"
+type = "single"
+
+[modules.agent]
+tools = ["claude", "codex", "opencode"]
+commands = ["review"]
+"#;
+        std::fs::write(&path, content).expect("config should be written");
+
+        let config = HarnConfig::load(&path).expect("supported tools should load");
+        let agent = config
+            .modules
+            .agent
+            .expect("agent config should be present after parsing");
+
+        assert_eq!(agent.tools, vec!["claude", "codex", "opencode"]);
     }
 }

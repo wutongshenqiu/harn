@@ -15,7 +15,7 @@
 
 ## Key Paths
 
-- `CLAUDE.md` — Full project rules and commands
+- `AGENTS.md` — Primary project rules and context
 - `docs/specs/_index.md` — Spec registry
 - `docs/playbooks/` — Development playbooks
 {% if project_type == "api" or project_type == "service" %}

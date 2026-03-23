@@ -1,14 +1,12 @@
-# {{ project_name }}
+# {{ project_name }} — Claude Code Context
 
-## Overview
+Read `AGENTS.md` first. This file adds Claude Code specific workflow details.
 
-_Brief project description._
+## Claude Files
 
-## Key Paths
-
-```
-TODO: List key directories and files
-```
+- `.claude/settings.json` — tool permissions and hooks
+- `.claude/commands/` — slash command implementations
+- `AGENTS.md` — repo-wide coding rules and project context
 
 ## Commands
 
@@ -28,31 +26,13 @@ TODO: List key directories and files
 
 ## Coding Rules
 
-1. **Lint before commit** — `{{ build_tool }} lint` must pass
-2. **Test before commit** — `{{ build_tool }} test` must pass
-{% if project_type == "api" or project_type == "service" %}
-3. **API envelope** — Standard response format
-4. **SSOT** — Types in `docs/reference/types/`
-{% endif %}
-5. **No hardcoded secrets** — Use env vars
-6. **Conventional commits** — `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`
-{% if project_type == "api" or project_type == "service" %}
-7. **Doc sync** — Update reference docs when changing APIs/types/schema
-{% endif %}
+1. Use `AGENTS.md` as the repo-wide source of truth
+2. Keep `.claude/commands/` aligned with the slash command table below
+3. Review `.claude/settings.json` permissions before enabling broad shell access
+4. Run `{{ build_tool }} lint` and `{{ build_tool }} test` before shipping
 
-## Git Conventions
+## Workflow
 
-- Branches: `feat/xxx`, `fix/xxx`, `docs/xxx`, `refactor/xxx`
-- Pre-commit: `{{ build_tool }} lint && {{ build_tool }} test`
-
-## SDD (Spec-Driven Development)
-
-```
-Draft -> Active -> Completed
-```
-
-- Specs: `docs/specs/` (registry: `_index.md`)
-{% if project_type == "api" or project_type == "service" %}
-- Reference: `docs/reference/` (SSOT)
-{% endif %}
-- Playbooks: `docs/playbooks/`
+- Start from `AGENTS.md` for project structure, rules, and references
+- Use slash commands from `.claude/commands/` for Claude-specific workflows
+- Update `AGENTS.md` when the persistent project context changes

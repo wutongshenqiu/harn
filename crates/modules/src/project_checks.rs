@@ -1,3 +1,4 @@
+use harn_core::agent_tools::{AgentToolArtifact, agent_tool};
 use harn_core::config::HarnConfig;
 use harn_core::doctor::{CheckResult, Diagnostic, Severity};
 use std::path::Path;
@@ -47,20 +48,8 @@ pub fn check_agent(root: &Path, config: &HarnConfig) -> CheckResult {
         return result;
     };
 
-    // Check CLAUDE.md exists
-    if root.join("CLAUDE.md").exists() {
-        CheckResult::ok(check, "CLAUDE.md exists");
-    } else {
-        result.push(Diagnostic {
-            severity: Severity::Warning,
-            check: check.into(),
-            message: "CLAUDE.md missing".into(),
-            fix: None,
-        });
-    }
-
-    // Check AGENTS.md exists
-    if root.join("AGENTS.md").exists() {
+    let has_agents_md = root.join("AGENTS.md").exists();
+    if has_agents_md {
         CheckResult::ok(check, "AGENTS.md exists");
     } else {
         result.push(Diagnostic {
@@ -71,40 +60,83 @@ pub fn check_agent(root: &Path, config: &HarnConfig) -> CheckResult {
         });
     }
 
-    // Check tool-specific config files
-    for tool in &agent.tools {
-        let path = match tool.as_str() {
-            "claude" => ".claude/settings.json",
-            "cursor" => ".cursor/rules",
-            "windsurf" => ".windsurfrules",
-            "cline" => ".clinerules",
-            "qoder" => ".qoder/rules/harn.md",
-            _ => continue,
-        };
-
-        if root.join(path).exists() {
-            CheckResult::ok(check, format!("{path} exists ({tool})"));
+    let has_claude_md = root.join("CLAUDE.md").exists();
+    if agent.tools.iter().any(|tool| tool == "claude") {
+        if has_claude_md {
+            CheckResult::ok(check, "CLAUDE.md exists");
         } else {
             result.push(Diagnostic {
                 severity: Severity::Warning,
                 check: check.into(),
-                message: format!("{path} missing (tool: {tool})"),
+                message: "CLAUDE.md missing (tool: claude)".into(),
                 fix: None,
             });
         }
+    } else if has_claude_md {
+        CheckResult::ok(check, "CLAUDE.md exists (supplemental context)");
     }
 
-    // Check package manager consistency
-    if agent.tools.iter().any(|t| t == "claude") {
+    for tool_id in &agent.tools {
+        let Some(tool) = agent_tool(tool_id) else {
+            result.push(Diagnostic {
+                severity: Severity::Error,
+                check: check.into(),
+                message: format!("unsupported agent tool configured: {tool_id}"),
+                fix: None,
+            });
+            continue;
+        };
+
+        if let Some(note) = tool.doctor_note
+            && has_agents_md
+        {
+            CheckResult::ok(check, format!("{note} ({tool_id})"));
+        }
+
+        for artifact in tool.artifacts {
+            check_agent_artifact(
+                root,
+                *artifact,
+                tool_id,
+                &agent.commands,
+                &mut result,
+                check,
+            );
+        }
+    }
+
+    if agent.tools.iter().any(|tool| tool == "claude") {
         let settings_path = root.join(".claude/settings.json");
-        if settings_path.exists() {
-            if let Ok(content) = std::fs::read_to_string(&settings_path) {
-                check_package_manager_consistency(root, &content, &mut result, check);
-            }
+        if settings_path.exists()
+            && let Ok(content) = std::fs::read_to_string(&settings_path)
+        {
+            check_package_manager_consistency(root, &content, &mut result, check);
         }
     }
 
     result
+}
+
+fn check_agent_artifact(
+    root: &Path,
+    artifact: AgentToolArtifact,
+    tool_id: &str,
+    commands: &[String],
+    result: &mut CheckResult,
+    check: &str,
+) {
+    for path in artifact.expected_paths(commands) {
+        if root.join(&path).exists() {
+            CheckResult::ok(check, format!("{path} exists ({tool_id})"));
+        } else {
+            result.push(Diagnostic {
+                severity: Severity::Warning,
+                check: check.into(),
+                message: format!("{path} missing (tool: {tool_id})"),
+                fix: None,
+            });
+        }
+    }
 }
 
 fn check_package_manager_consistency(
@@ -413,4 +445,74 @@ pub fn run_all_project_checks(root: &Path, config: &HarnConfig) -> CheckResult {
     result.merge(check_quality(root, config));
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::check_agent;
+    use harn_core::config::{AgentConfig, HarnConfig, ModulesConfig, ProjectConfig, StacksConfig};
+
+    fn config_with_agent(tools: &[&str], commands: &[&str]) -> HarnConfig {
+        HarnConfig {
+            project: ProjectConfig {
+                name: "agent-checks".into(),
+                r#type: "single".into(),
+            },
+            stacks: StacksConfig::default(),
+            modules: ModulesConfig {
+                agent: Some(AgentConfig {
+                    tools: tools.iter().map(ToString::to_string).collect(),
+                    commands: commands.iter().map(ToString::to_string).collect(),
+                    ..AgentConfig::default()
+                }),
+                ..ModulesConfig::default()
+            },
+        }
+    }
+
+    #[test]
+    fn codex_passes_with_agents_md_only() {
+        let dir = tempfile::tempdir().expect("tempdir should be created");
+        std::fs::write(dir.path().join("AGENTS.md"), "# Agent Context\n")
+            .expect("AGENTS.md should be written");
+
+        let result = check_agent(dir.path(), &config_with_agent(&["codex"], &[]));
+
+        assert_eq!(result.warning_count(), 0);
+        assert_eq!(result.error_count(), 0);
+    }
+
+    #[test]
+    fn opencode_checks_command_files() {
+        let dir = tempfile::tempdir().expect("tempdir should be created");
+        std::fs::write(dir.path().join("AGENTS.md"), "# Agent Context\n")
+            .expect("AGENTS.md should be written");
+
+        let result = check_agent(dir.path(), &config_with_agent(&["opencode"], &["review"]));
+
+        assert_eq!(result.warning_count(), 1);
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|diag| diag.message == ".opencode/commands/review.md missing (tool: opencode)")
+        );
+    }
+
+    #[test]
+    fn unknown_tool_is_reported_as_error() {
+        let dir = tempfile::tempdir().expect("tempdir should be created");
+        std::fs::write(dir.path().join("AGENTS.md"), "# Agent Context\n")
+            .expect("AGENTS.md should be written");
+
+        let result = check_agent(dir.path(), &config_with_agent(&["unknown"], &[]));
+
+        assert_eq!(result.error_count(), 1);
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|diag| diag.message == "unsupported agent tool configured: unknown")
+        );
+    }
 }
