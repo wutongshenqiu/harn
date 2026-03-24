@@ -6,6 +6,7 @@ Read `AGENTS.md` first. This file adds Claude Code specific workflow details.
 
 - `.claude/settings.json` — tool permissions and hooks
 - `.claude/commands/` — slash command implementations
+- `.agents/workflows/` — neutral workflow source files
 - `AGENTS.md` — repo-wide coding rules and project context
 
 ## Commands
@@ -27,12 +28,12 @@ Read `AGENTS.md` first. This file adds Claude Code specific workflow details.
 ## Coding Rules
 
 1. Use `AGENTS.md` as the repo-wide source of truth
-2. Keep `.claude/commands/` aligned with the slash command table below
+2. Keep `.claude/commands/` aligned with `.agents/workflows/`
 3. Review `.claude/settings.json` permissions before enabling broad shell access
 4. Run `{{ build_tool }} lint` and `{{ build_tool }} test` before shipping
 
 ## Workflow
 
 - Start from `AGENTS.md` for project structure, rules, and references
-- Use slash commands from `.claude/commands/` for Claude-specific workflows
+- Use `.agents/workflows/` as the neutral workflow source and `.claude/commands/` as the Claude overlay
 - Update `AGENTS.md` when the persistent project context changes

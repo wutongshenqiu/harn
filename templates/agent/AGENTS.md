@@ -24,7 +24,8 @@ TODO: List key directories and files
 
 ## Slash Commands
 
-These are primarily used by Claude Code / OpenCode style workflows.
+These workflows are defined canonically under `.agents/workflows/` and rendered into tool-specific
+overlays where applicable.
 
 | Command | Purpose |
 |---------|---------|
@@ -46,6 +47,8 @@ These are primarily used by Claude Code / OpenCode style workflows.
 
 - Branches: `feat/xxx`, `fix/xxx`, `docs/xxx`, `refactor/xxx`
 - Pre-commit: `{{ build_tool }} lint && {{ build_tool }} test`
+- Neutral workflow sources live under `.agents/workflows/`
+- Codex skills live under `.agents/skills/`
 - Tool-specific overlays live under `.claude/`, `.cursor/`, `.opencode/`, and similar paths
 
 ## SDD (Spec-Driven Development)

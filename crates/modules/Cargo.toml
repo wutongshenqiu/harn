@@ -9,6 +9,8 @@ harn-core.workspace = true
 harn-templates.workspace = true
 anyhow.workspace = true
 console.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

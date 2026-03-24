@@ -1,7 +1,12 @@
-use harn_core::agent_tools::{AgentToolArtifact, agent_tool};
+use harn_core::agent_tools::agent_tool;
 use harn_core::config::HarnConfig;
 use harn_core::doctor::{CheckResult, Diagnostic, Severity};
 use std::path::Path;
+
+use crate::agent_overlay::{
+    AGENT_OVERLAY_MANIFEST_PATH, expected_agent_overlays, load_overlay_manifest,
+    stale_overlay_paths, workflow_source_path,
+};
 
 /// Check CI workflow files exist for configured workflows.
 pub fn check_ci(root: &Path, config: &HarnConfig) -> CheckResult {
@@ -76,6 +81,20 @@ pub fn check_agent(root: &Path, config: &HarnConfig) -> CheckResult {
         CheckResult::ok(check, "CLAUDE.md exists (supplemental context)");
     }
 
+    for workflow_id in &agent.commands {
+        let workflow_path = workflow_source_path(workflow_id);
+        if root.join(&workflow_path).exists() {
+            CheckResult::ok(check, format!("{workflow_path} exists"));
+        } else {
+            result.push(Diagnostic {
+                severity: Severity::Warning,
+                check: check.into(),
+                message: format!("{workflow_path} missing (workflow source)"),
+                fix: None,
+            });
+        }
+    }
+
     for tool_id in &agent.tools {
         let Some(tool) = agent_tool(tool_id) else {
             result.push(Diagnostic {
@@ -92,16 +111,107 @@ pub fn check_agent(root: &Path, config: &HarnConfig) -> CheckResult {
         {
             CheckResult::ok(check, format!("{note} ({tool_id})"));
         }
+    }
 
-        for artifact in tool.artifacts {
-            check_agent_artifact(
-                root,
-                *artifact,
-                tool_id,
-                &agent.commands,
-                &mut result,
-                check,
-            );
+    match expected_agent_overlays(root, config) {
+        Ok(expected_overlays) => {
+            let expected_paths = expected_overlays
+                .iter()
+                .map(|overlay| overlay.path.clone())
+                .collect::<std::collections::BTreeSet<_>>();
+
+            let manifest = match load_overlay_manifest(root) {
+                Ok(manifest) => manifest,
+                Err(err) => {
+                    result.push(Diagnostic {
+                        severity: Severity::Warning,
+                        check: check.into(),
+                        message: format!("{AGENT_OVERLAY_MANIFEST_PATH} unreadable: {err}"),
+                        fix: None,
+                    });
+                    None
+                }
+            };
+
+            if manifest.is_some() {
+                CheckResult::ok(check, format!("{AGENT_OVERLAY_MANIFEST_PATH} exists"));
+            } else {
+                result.push(Diagnostic {
+                    severity: Severity::Warning,
+                    check: check.into(),
+                    message: format!("{AGENT_OVERLAY_MANIFEST_PATH} missing"),
+                    fix: None,
+                });
+            }
+
+            if let Some(manifest) = manifest.as_ref() {
+                for stale_path in stale_overlay_paths(Some(manifest), &expected_paths) {
+                    if root.join(&stale_path).exists() {
+                        result.push(Diagnostic {
+                            severity: Severity::Warning,
+                            check: check.into(),
+                            message: format!(
+                                "{stale_path} is stale (tracked by manifest but no longer expected)"
+                            ),
+                            fix: None,
+                        });
+                    }
+                }
+
+                for missing_path in expected_paths.difference(&manifest.artifact_set()) {
+                    result.push(Diagnostic {
+                        severity: Severity::Warning,
+                        check: check.into(),
+                        message: format!(
+                            "{missing_path} missing from {AGENT_OVERLAY_MANIFEST_PATH}"
+                        ),
+                        fix: None,
+                    });
+                }
+            }
+
+            for overlay in expected_overlays {
+                let path = root.join(&overlay.path);
+                if !path.exists() {
+                    result.push(Diagnostic {
+                        severity: Severity::Warning,
+                        check: check.into(),
+                        message: format!("{} missing (generated overlay)", overlay.path),
+                        fix: None,
+                    });
+                    continue;
+                }
+
+                match std::fs::read_to_string(&path) {
+                    Ok(content) if content == overlay.content => {
+                        CheckResult::ok(check, format!("{} in sync", overlay.path));
+                    }
+                    Ok(_) => {
+                        result.push(Diagnostic {
+                            severity: Severity::Warning,
+                            check: check.into(),
+                            message: format!("{} drifted from workflow source", overlay.path),
+                            fix: None,
+                        });
+                    }
+                    Err(err) => {
+                        result.push(Diagnostic {
+                            severity: Severity::Warning,
+                            check: check.into(),
+                            message: format!("{} unreadable: {err}", overlay.path),
+                            fix: None,
+                        });
+                    }
+                }
+            }
+        }
+        Err(err) => {
+            result.push(Diagnostic {
+                severity: Severity::Warning,
+                check: check.into(),
+                message: format!("failed to evaluate expected agent overlays: {err}"),
+                fix: None,
+            });
         }
     }
 
@@ -115,28 +225,6 @@ pub fn check_agent(root: &Path, config: &HarnConfig) -> CheckResult {
     }
 
     result
-}
-
-fn check_agent_artifact(
-    root: &Path,
-    artifact: AgentToolArtifact,
-    tool_id: &str,
-    commands: &[String],
-    result: &mut CheckResult,
-    check: &str,
-) {
-    for path in artifact.expected_paths(commands) {
-        if root.join(&path).exists() {
-            CheckResult::ok(check, format!("{path} exists ({tool_id})"));
-        } else {
-            result.push(Diagnostic {
-                severity: Severity::Warning,
-                check: check.into(),
-                message: format!("{path} missing (tool: {tool_id})"),
-                fix: None,
-            });
-        }
-    }
 }
 
 fn check_package_manager_consistency(
@@ -450,7 +538,11 @@ pub fn run_all_project_checks(root: &Path, config: &HarnConfig) -> CheckResult {
 #[cfg(test)]
 mod tests {
     use super::check_agent;
+    use crate::agent_overlay::{
+        AGENT_OVERLAY_MANIFEST_PATH, expected_agent_overlays, overlay_manifest_content,
+    };
     use harn_core::config::{AgentConfig, HarnConfig, ModulesConfig, ProjectConfig, StacksConfig};
+    use std::path::Path;
 
     fn config_with_agent(tools: &[&str], commands: &[&str]) -> HarnConfig {
         HarnConfig {
@@ -470,32 +562,53 @@ mod tests {
         }
     }
 
-    #[test]
-    fn codex_passes_with_agents_md_only() {
-        let dir = tempfile::tempdir().expect("tempdir should be created");
-        std::fs::write(dir.path().join("AGENTS.md"), "# Agent Context\n")
-            .expect("AGENTS.md should be written");
+    fn write_expected_agent_overlays(root: &Path, config: &HarnConfig) {
+        let overlays =
+            expected_agent_overlays(root, config).expect("expected overlays should load");
+        for overlay in &overlays {
+            let path = root.join(&overlay.path);
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent).expect("parent dirs should be created");
+            }
+            std::fs::write(&path, &overlay.content).expect("overlay should be written");
+        }
 
-        let result = check_agent(dir.path(), &config_with_agent(&["codex"], &[]));
+        let manifest = overlay_manifest_content(&overlays).expect("manifest should render");
+        let manifest_path = root.join(AGENT_OVERLAY_MANIFEST_PATH);
+        std::fs::create_dir_all(manifest_path.parent().unwrap())
+            .expect("manifest dir should exist");
+        std::fs::write(manifest_path, manifest).expect("manifest should be written");
+    }
+
+    #[test]
+    fn codex_passes_with_generated_overlays() {
+        let dir = tempfile::tempdir().expect("tempdir should be created");
+        let config = config_with_agent(&["codex"], &["review"]);
+        write_expected_agent_overlays(dir.path(), &config);
+
+        let result = check_agent(dir.path(), &config);
 
         assert_eq!(result.warning_count(), 0);
         assert_eq!(result.error_count(), 0);
     }
 
     #[test]
-    fn opencode_checks_command_files() {
+    fn opencode_missing_command_is_reported() {
         let dir = tempfile::tempdir().expect("tempdir should be created");
-        std::fs::write(dir.path().join("AGENTS.md"), "# Agent Context\n")
-            .expect("AGENTS.md should be written");
+        let config = config_with_agent(&["opencode"], &["review"]);
+        write_expected_agent_overlays(dir.path(), &config);
+        std::fs::remove_file(dir.path().join(".opencode/commands/review.md"))
+            .expect("opencode command should be removed");
 
-        let result = check_agent(dir.path(), &config_with_agent(&["opencode"], &["review"]));
+        let result = check_agent(dir.path(), &config);
 
         assert_eq!(result.warning_count(), 1);
         assert!(
             result
                 .diagnostics
                 .iter()
-                .any(|diag| diag.message == ".opencode/commands/review.md missing (tool: opencode)")
+                .any(|diag| diag.message
+                    == ".opencode/commands/review.md missing (generated overlay)")
         );
     }
 
@@ -514,5 +627,52 @@ mod tests {
                 .iter()
                 .any(|diag| diag.message == "unsupported agent tool configured: unknown")
         );
+    }
+
+    #[test]
+    fn drifted_overlay_is_reported() {
+        let dir = tempfile::tempdir().expect("tempdir should be created");
+        let config = config_with_agent(&["codex"], &["review"]);
+        write_expected_agent_overlays(dir.path(), &config);
+        std::fs::write(dir.path().join(".agents/skills/review/SKILL.md"), "drifted")
+            .expect("skill should be modified");
+
+        let result = check_agent(dir.path(), &config);
+
+        assert!(
+            result.diagnostics.iter().any(|diag| diag.message
+                == ".agents/skills/review/SKILL.md drifted from workflow source")
+        );
+    }
+
+    #[test]
+    fn stale_manifest_entry_is_reported() {
+        let dir = tempfile::tempdir().expect("tempdir should be created");
+        let config = config_with_agent(&["codex"], &["review"]);
+        write_expected_agent_overlays(dir.path(), &config);
+
+        let stale_path = dir.path().join(".claude/commands/retro.md");
+        std::fs::create_dir_all(stale_path.parent().unwrap()).expect("stale dir should exist");
+        std::fs::write(&stale_path, "stale").expect("stale file should be written");
+        std::fs::write(
+            dir.path().join(AGENT_OVERLAY_MANIFEST_PATH),
+            r#"{
+  "version": 1,
+  "artifacts": [
+    ".agents/codex/print-config.sh",
+    ".agents/skills/review/SKILL.md",
+    ".agents/workflows/review.md",
+    ".claude/commands/retro.md",
+    "AGENTS.md",
+    "CLAUDE.md"
+  ]
+}"#,
+        )
+        .expect("stale manifest should be written");
+
+        let result = check_agent(dir.path(), &config);
+
+        assert!(result.diagnostics.iter().any(|diag| diag.message
+            == ".claude/commands/retro.md is stale (tracked by manifest but no longer expected)"));
     }
 }

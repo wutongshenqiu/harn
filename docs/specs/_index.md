@@ -13,6 +13,8 @@ All specifications for harn.
 | SPEC-005 | Add Docker Templates for All Languages          | Completed | completed/SPEC-005/             |
 | SPEC-006 | SDD Project Diagnostics and Upgrade (harn doctor) | Completed | completed/SPEC-006/             |
 | SPEC-007 | Fix write pipeline, non-interactive issue, and doctor depth | Completed | completed/SPEC-007/             |
+| SPEC-008 | Neutralize agent workflow SSOT and add first-class Codex overlays | Completed | completed/SPEC-008/ |
+| SPEC-009 | Detect drift and prune stale generated agent overlays | Completed | completed/SPEC-009/ |
 
 ## Active
 

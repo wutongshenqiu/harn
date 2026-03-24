@@ -8,7 +8,7 @@ Universal project harness with Spec-Driven Development (SDD) methodology.
 
 **harn** equips your project with production-grade development infrastructure in one command: SDD documentation, AI agent configs, CI/CD pipelines, build orchestration, and quality gates.
 
-`AGENTS.md` is generated as the primary repo brief for Codex and other tool-agnostic coding agents, with tool-specific overlays such as `.claude/` added when selected.
+`AGENTS.md` is generated as the primary repo brief for Codex and other tool-agnostic coding agents. harn also generates neutral workflow sources under `.agents/workflows/` and tool-specific overlays such as `.claude/`, `.opencode/`, and `.agents/skills/`.
 
 Distilled from patterns across multiple production Rust/Go/TypeScript/Flutter/Python/Java/C++ projects.
 
@@ -59,6 +59,10 @@ project/
 ├── CLAUDE.md                     # Claude Code supplement + slash commands
 ├── Makefile                      # Unified build (language-aware)
 ├── harn.toml                     # Reproducible config
+├── .agents/
+│   ├── workflows/                # Neutral workflow source files
+│   ├── skills/                   # Codex skills generated from workflows
+│   └── codex/print-config.sh     # Prints [[skills.config]] stanzas
 ├── .claude/                      # Claude Code config + slash commands
 ├── .cursor/rules                 # Cursor rules
 ├── .windsurfrules                # Windsurf rules
