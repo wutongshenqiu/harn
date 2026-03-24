@@ -97,6 +97,15 @@ impl TemplateEngine {
     ///
     /// If the output file exists and `force` is false, skip it.
     /// Returns `WriteStatus` indicating what happened.
+    pub fn render(&self, template_path: &str, vars: &HashMap<String, String>) -> Result<String> {
+        let tmpl = TEMPLATE_ENV
+            .get_template(template_path)
+            .with_context(|| format!("Template not found: {template_path}"))?;
+
+        tmpl.render(minijinja::context! { ..minijinja::Value::from_serialize(vars) })
+            .with_context(|| format!("Failed to render: {template_path}"))
+    }
+
     pub fn render_to(
         &self,
         template_path: &str,
@@ -110,13 +119,7 @@ impl TemplateEngine {
             return Ok(WriteStatus::Skipped);
         }
 
-        let tmpl = TEMPLATE_ENV
-            .get_template(template_path)
-            .with_context(|| format!("Template not found: {template_path}"))?;
-
-        let rendered = tmpl
-            .render(minijinja::context! { ..minijinja::Value::from_serialize(vars) })
-            .with_context(|| format!("Failed to render: {template_path}"))?;
+        let rendered = self.render(template_path, vars)?;
 
         if self.dry_run {
             return Ok(if exists {

@@ -14,6 +14,13 @@ crates/
 templates/    # Template files embedded into the binary at compile time
 ```
 
+## Agent Workflow Model
+
+- Neutral workflow sources live under `.agents/workflows/`
+- Claude and OpenCode overlays are generated from the same workflow source
+- Codex overlays live under `.agents/skills/`
+- Generated overlay bookkeeping lives in `.harn/agent-overlays.json`
+
 ## Commands
 
 ```bash

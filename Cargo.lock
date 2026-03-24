@@ -235,6 +235,8 @@ dependencies = [
  "console",
  "harn-core",
  "harn-templates",
+ "serde",
+ "serde_json",
  "tempfile",
 ]
 

@@ -1,4 +1,5 @@
 use harn_core::agent_tools::AGENT_TOOL_IDS;
+use harn_core::agent_workflows::{AGENT_WORKFLOW_IDS, DEFAULT_AGENT_WORKFLOW_IDS};
 use harn_modules::sdd::SDD_PLAYBOOK_FILES;
 use harn_templates::TemplateEngine;
 
@@ -41,60 +42,37 @@ fn ide_templates_exist_for_supported_editors() {
     }
 }
 
-/// Verify that all default slash commands have template files.
+/// Verify that all supported workflows have neutral workflow templates.
 #[test]
-fn command_templates_exist_for_all_defaults() {
+fn workflow_templates_exist_for_all_supported_workflows() {
     let engine = TemplateEngine::new();
-    let default_commands = [
-        "ship",
-        "implement",
-        "spec",
-        "lint",
-        "test",
-        "review",
-        "diagnose",
-        "deps",
-        "issues",
-        "doc-audit",
-        "retro",
-        "sync-commands",
-        "ci",
-        "pr",
-        "deploy",
-        "run-plan",
-    ];
 
-    for cmd in &default_commands {
-        let path = format!("agent/commands/{cmd}.md");
+    for workflow in AGENT_WORKFLOW_IDS {
+        let path = format!("agent/workflows/{workflow}.md");
         assert!(
             engine.has_template(&path),
-            "Missing command template: {path}"
+            "Missing workflow template: {path}"
         );
     }
 }
 
-/// Verify that every command template has a description entry in agent.rs.
-/// Reads the source file and checks that each template name appears in
-/// `build_slash_commands_table`.
+/// Verify that all default workflows are part of the supported workflow registry.
 #[test]
-fn slash_command_descriptions_cover_all_templates() {
-    let engine = TemplateEngine::new();
-    let templates = engine.list_templates("agent/commands/");
-
-    let agent_src =
-        std::fs::read_to_string("src/agent.rs").expect("Could not read agent.rs source");
-
-    for tpl in &templates {
-        // template path is "agent/commands/foo.md", extract "foo"
-        let name = tpl
-            .strip_prefix("agent/commands/")
-            .and_then(|s| s.strip_suffix(".md"))
-            .unwrap_or(tpl);
+fn default_workflows_are_supported() {
+    for workflow in DEFAULT_AGENT_WORKFLOW_IDS {
         assert!(
-            agent_src.contains(&format!("\"{name}\"")),
-            "Command template '{name}' exists but has no entry in build_slash_commands_table() — add it to agent.rs"
+            AGENT_WORKFLOW_IDS.contains(workflow),
+            "Default workflow '{workflow}' must be supported"
         );
     }
+}
+
+/// Verify that Codex helper templates exist.
+#[test]
+fn codex_templates_exist() {
+    let engine = TemplateEngine::new();
+    assert!(engine.has_template("agent/skills/SKILL.md"));
+    assert!(engine.has_template("agent/codex/print-config.sh"));
 }
 
 /// Verify that every playbook in templates/sdd/playbooks/ is listed in `SDD_PLAYBOOK_FILES`.

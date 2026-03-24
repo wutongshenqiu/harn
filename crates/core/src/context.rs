@@ -9,6 +9,8 @@ pub enum WriteStatus {
     Skipped,
     WouldCreate,
     WouldOverwrite,
+    Deleted,
+    WouldDelete,
 }
 
 impl WriteStatus {
@@ -128,6 +130,77 @@ impl ProjectContext {
             WriteStatus::Created
         })
     }
+
+    /// Write an internal harn-managed file, always overwriting existing content.
+    ///
+    /// This is used for harn-owned bookkeeping such as manifests.
+    pub fn write_internal_file(&self, path: &Path, content: &str) -> std::io::Result<WriteStatus> {
+        let exists = path.exists();
+
+        if self.dry_run {
+            return Ok(if exists {
+                WriteStatus::WouldOverwrite
+            } else {
+                WriteStatus::WouldCreate
+            });
+        }
+
+        if exists {
+            self.backup_file(path)?;
+        }
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::write(path, content)?;
+
+        Ok(if exists {
+            WriteStatus::Overwritten
+        } else {
+            WriteStatus::Created
+        })
+    }
+
+    /// Delete a harn-managed file and remove any now-empty parent directories.
+    pub fn delete_file(&self, path: &Path) -> std::io::Result<WriteStatus> {
+        if !path.exists() {
+            return Ok(WriteStatus::Skipped);
+        }
+
+        if self.dry_run {
+            return Ok(WriteStatus::WouldDelete);
+        }
+
+        if path.is_file() {
+            self.backup_file(path)?;
+            std::fs::remove_file(path)?;
+        } else if path.is_dir() {
+            std::fs::remove_dir_all(path)?;
+        }
+
+        self.remove_empty_parent_dirs(path.parent());
+
+        Ok(WriteStatus::Deleted)
+    }
+
+    fn remove_empty_parent_dirs(&self, mut current: Option<&Path>) {
+        while let Some(dir) = current {
+            if dir == self.root || dir == self.backup_dir() {
+                break;
+            }
+
+            let Ok(mut entries) = std::fs::read_dir(dir) else {
+                break;
+            };
+            if entries.next().is_some() {
+                break;
+            }
+
+            if std::fs::remove_dir(dir).is_err() {
+                break;
+            }
+            current = dir.parent();
+        }
+    }
 }
 
 #[cfg(test)]
@@ -145,6 +218,8 @@ mod tests {
     #[test]
     fn is_written_returns_false_for_skipped() {
         assert!(!WriteStatus::Skipped.is_written());
+        assert!(!WriteStatus::Deleted.is_written());
+        assert!(!WriteStatus::WouldDelete.is_written());
     }
 
     #[test]
@@ -246,5 +321,59 @@ mod tests {
         let backup = dir.path().join(".harn-backup/sub/dir/file.txt");
         assert!(backup.exists());
         assert_eq!(std::fs::read_to_string(backup).unwrap(), "original");
+    }
+
+    #[test]
+    fn write_internal_file_overwrites_without_force() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = HarnConfig::default_all("test".into());
+        let ctx = ProjectContext::new(dir.path().to_path_buf(), config);
+
+        let path = dir.path().join(".harn/manifest.json");
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, "old").unwrap();
+
+        let status = ctx.write_internal_file(&path, "new").unwrap();
+
+        assert_eq!(status, WriteStatus::Overwritten);
+        assert_eq!(std::fs::read_to_string(path).unwrap(), "new");
+    }
+
+    #[test]
+    fn delete_file_backs_up_and_cleans_empty_parents() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = HarnConfig::default_all("test".into());
+        let ctx = ProjectContext::new(dir.path().to_path_buf(), config);
+
+        let skill_dir = dir.path().join(".agents/skills/review");
+        std::fs::create_dir_all(&skill_dir).unwrap();
+        let path = skill_dir.join("SKILL.md");
+        std::fs::write(&path, "skill").unwrap();
+
+        let status = ctx.delete_file(&path).unwrap();
+
+        assert_eq!(status, WriteStatus::Deleted);
+        assert!(!path.exists());
+        assert!(!skill_dir.exists());
+        let backup = dir
+            .path()
+            .join(".harn-backup/.agents/skills/review/SKILL.md");
+        assert!(backup.exists());
+    }
+
+    #[test]
+    fn delete_file_dry_run_would_delete() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = HarnConfig::default_all("test".into());
+        let mut ctx = ProjectContext::new(dir.path().to_path_buf(), config);
+        ctx.dry_run = true;
+
+        let path = dir.path().join("stale.txt");
+        std::fs::write(&path, "stale").unwrap();
+
+        let status = ctx.delete_file(&path).unwrap();
+
+        assert_eq!(status, WriteStatus::WouldDelete);
+        assert!(path.exists());
     }
 }

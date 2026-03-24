@@ -1,4 +1,5 @@
 use crate::agent_tools::validate_agent_tools;
+use crate::agent_workflows::{DEFAULT_AGENT_WORKFLOW_IDS, validate_agent_workflows};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -132,7 +133,7 @@ pub struct AgentConfig {
     #[serde(default = "default_agent_tools")]
     pub tools: Vec<String>,
 
-    /// Which slash commands to include
+    /// Which agent workflows to include
     #[serde(default = "default_commands")]
     pub commands: Vec<String>,
 
@@ -150,23 +151,10 @@ fn default_agent_tools() -> Vec<String> {
 }
 
 fn default_commands() -> Vec<String> {
-    vec![
-        "ship".into(),
-        "implement".into(),
-        "spec".into(),
-        "lint".into(),
-        "test".into(),
-        "review".into(),
-        "diagnose".into(),
-        "deps".into(),
-        "issues".into(),
-        "doc-audit".into(),
-        "retro".into(),
-        "sync-commands".into(),
-        "ci".into(),
-        "pr".into(),
-        "deploy".into(),
-    ]
+    DEFAULT_AGENT_WORKFLOW_IDS
+        .iter()
+        .map(|workflow| (*workflow).to_string())
+        .collect()
 }
 
 impl Default for AgentConfig {
@@ -337,6 +325,7 @@ impl HarnConfig {
     pub fn validate(&self) -> anyhow::Result<()> {
         if let Some(agent) = &self.modules.agent {
             validate_agent_tools(&agent.tools)?;
+            validate_agent_workflows(&agent.commands)?;
         }
 
         Ok(())
@@ -399,5 +388,27 @@ commands = ["review"]
             .expect("agent config should be present after parsing");
 
         assert_eq!(agent.tools, vec!["claude", "codex", "opencode"]);
+    }
+
+    #[test]
+    fn load_rejects_unknown_agent_workflow() {
+        let dir = tempfile::tempdir().expect("tempdir should be created");
+        let path = dir.path().join("harn.toml");
+        let content = r#"
+[project]
+name = "bad-agent-workflow"
+type = "single"
+
+[modules.agent]
+tools = ["codex"]
+commands = ["review", "unknown"]
+"#;
+        std::fs::write(&path, content).expect("config should be written");
+
+        let err = HarnConfig::load(&path).expect_err("unknown workflow should fail validation");
+        let message = err.to_string();
+
+        assert!(message.contains("Unsupported agent workflow(s): unknown"));
+        assert!(message.contains("review"));
     }
 }

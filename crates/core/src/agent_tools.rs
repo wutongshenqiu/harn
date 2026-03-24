@@ -4,6 +4,7 @@ use anyhow::ensure;
 pub enum AgentToolArtifact {
     File(&'static str),
     CommandsDir(&'static str),
+    SkillsDir(&'static str),
 }
 
 impl AgentToolArtifact {
@@ -13,6 +14,10 @@ impl AgentToolArtifact {
             Self::CommandsDir(dir) => commands
                 .iter()
                 .map(|command| format!("{dir}/{command}.md"))
+                .collect(),
+            Self::SkillsDir(dir) => commands
+                .iter()
+                .map(|command| format!("{dir}/{command}/SKILL.md"))
                 .collect(),
         }
     }
@@ -36,7 +41,10 @@ const CLINE_ARTIFACTS: &[AgentToolArtifact] = &[AgentToolArtifact::File(".cliner
 const OPENCODE_ARTIFACTS: &[AgentToolArtifact] =
     &[AgentToolArtifact::CommandsDir(".opencode/commands")];
 const QODER_ARTIFACTS: &[AgentToolArtifact] = &[AgentToolArtifact::File(".qoder/rules/harn.md")];
-const CODEX_ARTIFACTS: &[AgentToolArtifact] = &[];
+const CODEX_ARTIFACTS: &[AgentToolArtifact] = &[
+    AgentToolArtifact::SkillsDir(".agents/skills"),
+    AgentToolArtifact::File(".agents/codex/print-config.sh"),
+];
 
 pub const SUPPORTED_AGENT_TOOLS: &[AgentTool] = &[
     AgentTool {
@@ -113,7 +121,9 @@ pub fn validate_agent_tools(tools: &[String]) -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{AGENT_TOOL_IDS, SUPPORTED_AGENT_TOOLS, agent_tool, validate_agent_tools};
+    use super::{
+        AGENT_TOOL_IDS, CODEX_ARTIFACTS, SUPPORTED_AGENT_TOOLS, agent_tool, validate_agent_tools,
+    };
 
     #[test]
     fn supported_ids_match_tool_table() {
@@ -122,9 +132,9 @@ mod tests {
     }
 
     #[test]
-    fn codex_has_context_note_and_no_artifacts() {
+    fn codex_has_context_note_and_artifacts() {
         let codex = agent_tool("codex").expect("codex should be supported");
-        assert!(codex.artifacts.is_empty());
+        assert_eq!(codex.artifacts, CODEX_ARTIFACTS);
         assert_eq!(
             codex.doctor_note,
             Some("AGENTS.md provides Codex repo context")

@@ -1,4 +1,5 @@
 pub mod agent;
+mod agent_overlay;
 pub mod build;
 pub mod ci;
 pub mod docker;

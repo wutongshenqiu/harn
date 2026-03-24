@@ -237,6 +237,11 @@ fn cmd_init(
             "  2. Review {} and slash commands",
             style(".claude/settings.json").cyan()
         );
+    } else if agent_tools.iter().any(|tool| tool == "codex") {
+        println!(
+            "  2. Review {} and enable the printed skill paths in ~/.codex/config.toml",
+            style(".agents/codex/print-config.sh").cyan()
+        );
     } else if agent_tools.iter().any(|tool| tool == "opencode") {
         println!(
             "  2. Review generated {}",
@@ -702,6 +707,8 @@ fn print_file_ops(files: &[(String, WriteStatus)]) {
             WriteStatus::Overwritten => style("   FORCE").magenta(),
             WriteStatus::Skipped => style("    SKIP").dim(),
             WriteStatus::WouldOverwrite => style("   FORCE").yellow(),
+            WriteStatus::Deleted => style("  DELETE").red(),
+            WriteStatus::WouldDelete => style("  DELETE").yellow(),
         };
         println!("  {label} {path}");
     }
